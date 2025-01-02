@@ -12,15 +12,19 @@ See the Mulan PSL v2 for more details. */
 // Created by WangYunlai on 2022/11/18.
 //
 
-#include "sql/executor/sql_result.h"
-#include "common/log/log.h"
 #include "common/rc.h"
+#include "sql/executor/sql_result.h"
 #include "session/session.h"
 #include "storage/trx/trx.h"
+#include "common/log/log.h"
 
-SqlResult::SqlResult(Session *session) : session_(session) {}
+SqlResult::SqlResult(Session *session) : session_(session)
+{}
 
-void SqlResult::set_tuple_schema(const TupleSchema &schema) { tuple_schema_ = schema; }
+void SqlResult::set_tuple_schema(const TupleSchema &schema)
+{
+  tuple_schema_ = schema;
+}
 
 RC SqlResult::open()
 {
@@ -69,15 +73,8 @@ RC SqlResult::next_tuple(Tuple *&tuple)
   return rc;
 }
 
-RC SqlResult::next_chunk(Chunk &chunk)
-{
-  RC rc = operator_->next(chunk);
-  return rc;
-}
-
 void SqlResult::set_operator(std::unique_ptr<PhysicalOperator> oper)
 {
   ASSERT(operator_ == nullptr, "current operator is not null. Result is not closed?");
   operator_ = std::move(oper);
-  operator_->tuple_schema(tuple_schema_);
 }

@@ -12,33 +12,35 @@ See the Mulan PSL v2 for more details. */
 // Created by Wangyunlai on 2021/5/7.
 //
 
-#include "condition_filter.h"
-#include "common/log/log.h"
-#include "common/value.h"
-#include "storage/record/record_manager.h"
-#include "storage/table/table.h"
-#include <math.h>
 #include <stddef.h>
+#include <math.h>
+#include "condition_filter.h"
+#include "storage/record/record_manager.h"
+#include "common/log/log.h"
+#include "storage/table/table.h"
+#include "sql/parser/value.h"
 
 using namespace common;
 
-ConditionFilter::~ConditionFilter() {}
+ConditionFilter::~ConditionFilter()
+{}
 
 DefaultConditionFilter::DefaultConditionFilter()
 {
-  left_.is_attr     = false;
+  left_.is_attr = false;
   left_.attr_length = 0;
   left_.attr_offset = 0;
 
-  right_.is_attr     = false;
+  right_.is_attr = false;
   right_.attr_length = 0;
   right_.attr_offset = 0;
 }
-DefaultConditionFilter::~DefaultConditionFilter() {}
+DefaultConditionFilter::~DefaultConditionFilter()
+{}
 
 RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op)
 {
-  if (attr_type <= AttrType::UNDEFINED || attr_type >= AttrType::MAXTYPE) {
+  if (attr_type < CHARS || attr_type > FLOATS) {
     LOG_ERROR("Invalid condition with unsupported attribute type: %d", attr_type);
     return RC::INVALID_ARGUMENT;
   }
@@ -48,24 +50,24 @@ RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrT
     return RC::INVALID_ARGUMENT;
   }
 
-  left_      = left;
-  right_     = right;
+  left_ = left;
+  right_ = right;
   attr_type_ = attr_type;
-  comp_op_   = comp_op;
+  comp_op_ = comp_op;
   return RC::SUCCESS;
 }
 
 RC DefaultConditionFilter::init(Table &table, const ConditionSqlNode &condition)
 {
   const TableMeta &table_meta = table.table_meta();
-  ConDesc          left;
-  ConDesc          right;
+  ConDesc left;
+  ConDesc right;
 
-  AttrType type_left  = AttrType::UNDEFINED;
-  AttrType type_right = AttrType::UNDEFINED;
+  AttrType type_left = UNDEFINED;
+  AttrType type_right = UNDEFINED;
 
   if (1 == condition.left_is_attr) {
-    left.is_attr                = true;
+    left.is_attr = true;
     const FieldMeta *field_left = table_meta.field(condition.left_attr.attribute_name.c_str());
     if (nullptr == field_left) {
       LOG_WARN("No such field in condition. %s.%s", table.name(), condition.left_attr.attribute_name.c_str());
@@ -77,15 +79,15 @@ RC DefaultConditionFilter::init(Table &table, const ConditionSqlNode &condition)
     type_left = field_left->type();
   } else {
     left.is_attr = false;
-    left.value   = condition.left_value;  // 校验type 或者转换类型
-    type_left    = condition.left_value.attr_type();
+    left.value = condition.left_value;  // 校验type 或者转换类型
+    type_left = condition.left_value.attr_type();
 
     left.attr_length = 0;
     left.attr_offset = 0;
   }
 
   if (1 == condition.right_is_attr) {
-    right.is_attr                = true;
+    right.is_attr = true;
     const FieldMeta *field_right = table_meta.field(condition.right_attr.attribute_name.c_str());
     if (nullptr == field_right) {
       LOG_WARN("No such field in condition. %s.%s", table.name(), condition.right_attr.attribute_name.c_str());
@@ -93,11 +95,11 @@ RC DefaultConditionFilter::init(Table &table, const ConditionSqlNode &condition)
     }
     right.attr_length = field_right->len();
     right.attr_offset = field_right->offset();
-    type_right        = field_right->type();
+    type_right = field_right->type();
   } else {
     right.is_attr = false;
-    right.value   = condition.right_value;
-    type_right    = condition.right_value.attr_type();
+    right.value = condition.right_value;
+    type_right = condition.right_value.attr_type();
 
     right.attr_length = 0;
     right.attr_offset = 0;
@@ -135,18 +137,27 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   } else {
     right_value.set_value(right_.value);
   }
-
+  if(comp_op_ == LIKE_WITH || comp_op_ == NOT_LIKE_WITH){
+    return left_value.compare_like(right_value);
+  }
   int cmp_result = left_value.compare(right_value);
 
   switch (comp_op_) {
-    case EQUAL_TO: return 0 == cmp_result;
-    case LESS_EQUAL: return cmp_result <= 0;
-    case NOT_EQUAL: return cmp_result != 0;
-    case LESS_THAN: return cmp_result < 0;
-    case GREAT_EQUAL: return cmp_result >= 0;
-    case GREAT_THAN: return cmp_result > 0;
+    case EQUAL_TO:
+      return 0 == cmp_result;
+    case LESS_EQUAL:
+      return cmp_result <= 0;
+    case NOT_EQUAL:
+      return cmp_result != 0;
+    case LESS_THAN:
+      return cmp_result < 0;
+    case GREAT_EQUAL:
+      return cmp_result >= 0;
+    case GREAT_THAN:
+      return cmp_result > 0;
 
-    default: break;
+    default:
+      break;
   }
 
   LOG_PANIC("Never should print this.");
@@ -163,8 +174,8 @@ CompositeConditionFilter::~CompositeConditionFilter()
 
 RC CompositeConditionFilter::init(const ConditionFilter *filters[], int filter_num, bool own_memory)
 {
-  filters_      = filters;
-  filter_num_   = filter_num;
+  filters_ = filters;
+  filter_num_ = filter_num;
   memory_owner_ = own_memory;
   return RC::SUCCESS;
 }
@@ -182,11 +193,11 @@ RC CompositeConditionFilter::init(Table &table, const ConditionSqlNode *conditio
     return RC::INVALID_ARGUMENT;
   }
 
-  RC                rc                = RC::SUCCESS;
+  RC rc = RC::SUCCESS;
   ConditionFilter **condition_filters = new ConditionFilter *[condition_num];
   for (int i = 0; i < condition_num; i++) {
     DefaultConditionFilter *default_condition_filter = new DefaultConditionFilter();
-    rc                                               = default_condition_filter->init(table, conditions[i]);
+    rc = default_condition_filter->init(table, conditions[i]);
     if (rc != RC::SUCCESS) {
       delete default_condition_filter;
       for (int j = i - 1; j >= 0; j--) {

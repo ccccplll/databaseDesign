@@ -11,18 +11,16 @@ See the Mulan PSL v2 for more details. */
 //
 // Created by Longda on 2021/4/20.
 //
-#pragma once
+#ifndef __COMMON_MATH_RANDOM_GENERATOR_H_
+#define __COMMON_MATH_RANDOM_GENERATOR_H_
 
 #include <stdlib.h>
-
-#include "common/lang/random.h"
-
+#include <random>
 namespace common {
 
 #define DEFAULT_RANDOM_BUFF_SIZE 512
 
-class RandomGenerator
-{
+class RandomGenerator {
 
 public:
   RandomGenerator();
@@ -34,7 +32,9 @@ public:
 
 private:
   // The GUN Extended TLS Version
-  mt19937 randomData;
+  std::mt19937 randomData;
 };
 
 }  // namespace common
+
+#endif /* __COMMON_MATH_RANDOM_GENERATOR_H_ */

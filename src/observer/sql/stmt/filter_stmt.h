@@ -14,53 +14,80 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
-#include "sql/expr/expression.h"
+#include <vector>
+#include <unordered_map>
 #include "sql/parser/parse_defs.h"
 #include "sql/stmt/stmt.h"
-#include <unordered_map>
-#include <vector>
+#include "sql/expr/expression.h"
 
 class Db;
 class Table;
 class FieldMeta;
 
-struct FilterObj
+struct FilterObj 
 {
-  bool  is_attr;
+  bool is_attr;
   Field field;
   Value value;
-
+  ConditionValueType type;
+  std::vector<Value>  value_list;
   void init_attr(const Field &field)
   {
-    is_attr     = true;
+    is_attr = true;
+    type = ATTR;
     this->field = field;
   }
 
   void init_value(const Value &value)
   {
-    is_attr     = false;
+    is_attr = false;
+    type = SINGLE_VALUE;
     this->value = value;
+  }
+  void init_value_list( std::vector<Value>  value_list){
+    is_attr = false;
+    type = VALUE_LIST;
+    this->value_list.swap(value_list);
   }
 };
 
-class FilterUnit
+class FilterUnit 
 {
 public:
   FilterUnit() = default;
-  ~FilterUnit() {}
+  ~FilterUnit()
+  {}
 
-  void set_comp(CompOp comp) { comp_ = comp; }
+  void set_comp(CompOp comp)
+  {
+    comp_ = comp;
+  }
 
-  CompOp comp() const { return comp_; }
+  CompOp comp() const
+  {
+    return comp_;
+  }
 
-  void set_left(const FilterObj &obj) { left_ = obj; }
-  void set_right(const FilterObj &obj) { right_ = obj; }
+  void set_left(const FilterObj &obj)
+  {
+    left_ = obj;
+  }
+  void set_right(const FilterObj &obj)
+  {
+    right_ = obj;
+  }
 
-  const FilterObj &left() const { return left_; }
-  const FilterObj &right() const { return right_; }
+  const FilterObj &left() const
+  {
+    return left_;
+  }
+  const FilterObj &right() const
+  {
+    return right_;
+  }
 
 private:
-  CompOp    comp_ = NO_OP;
+  CompOp comp_ = NO_OP;
   FilterObj left_;
   FilterObj right_;
 };
@@ -69,14 +96,17 @@ private:
  * @brief Filter/谓词/过滤语句
  * @ingroup Statement
  */
-class FilterStmt
+class FilterStmt 
 {
 public:
   FilterStmt() = default;
   virtual ~FilterStmt();
 
 public:
-  const std::vector<FilterUnit *> &filter_units() const { return filter_units_; }
+  const std::vector<FilterUnit *> &filter_units() const
+  {
+    return filter_units_;
+  }
 
 public:
   static RC create(Db *db, Table *default_table, std::unordered_map<std::string, Table *> *tables,

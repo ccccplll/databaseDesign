@@ -14,34 +14,54 @@ See the Mulan PSL v2 for more details. */
 
 #include <atomic>
 
-#include "common/lang/string.h"
-#include "common/log/log.h"
-#include "storage/field/field.h"
-#include "storage/field/field_meta.h"
-#include "storage/record/record_manager.h"
-#include "storage/table/table.h"
-#include "storage/trx/mvcc_trx.h"
 #include "storage/trx/trx.h"
+#include "storage/table/table.h"
+#include "storage/record/record_manager.h"
+#include "storage/field/field_meta.h"
+#include "common/log/log.h"
+#include "common/lang/string.h"
+#include "storage/field/field.h"
+#include "storage/trx/mvcc_trx.h"
 #include "storage/trx/vacuous_trx.h"
+
+static TrxKit *global_trxkit = nullptr;
 
 TrxKit *TrxKit::create(const char *name)
 {
-  TrxKit *trx_kit = nullptr;
   if (common::is_blank(name) || 0 == strcasecmp(name, "vacuous")) {
-    trx_kit = new VacuousTrxKit();
-  } else if (0 == strcasecmp(name, "mvcc")) {
-    trx_kit = new MvccTrxKit();
-  } else {
-    LOG_ERROR("unknown trx kit name. name=%s", name);
-    return nullptr;
+    return new VacuousTrxKit();
+  }
+
+  if (0 == strcasecmp(name, "mvcc")) {
+    return new MvccTrxKit();
+  }
+  
+  LOG_ERROR("unknown trx kit name. name=%s", name);
+  return nullptr;
+}
+
+RC TrxKit::init_global(const char *name)
+{
+  ASSERT(global_trxkit == nullptr, "init global trx kit twice");
+  TrxKit *trx_kit = create(name);
+  if (nullptr == trx_kit) {
+    LOG_ERROR("failed to create trx kit by name. name=%s", name);
+    return RC::INTERNAL;
   }
 
   RC rc = trx_kit->init();
-  if (OB_FAIL(rc)) {
-    LOG_ERROR("failed to init trx kit. name=%s, rc=%s", name, strrc(rc));
-    delete trx_kit;
-    trx_kit = nullptr;
+  if (rc == RC::SUCCESS) {
+    global_trxkit = trx_kit;
   }
-  
-  return trx_kit;
+  return rc;
+}
+
+TrxKit *TrxKit::instance()
+{
+  return global_trxkit;
+}
+
+RC Trx::redo(Db *db, const CLogRecord &)
+{
+  return RC::UNIMPLENMENT;
 }

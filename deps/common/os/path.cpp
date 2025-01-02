@@ -11,28 +11,27 @@ See the Mulan PSL v2 for more details. */
 //
 // Created by Longda on 2010
 //
-#include <dirent.h>
-#include <regex.h>
-#include <string.h>
 #include <sys/stat.h>
+#include <regex.h>
+#include <dirent.h>
+#include <string.h>
+
+#include <vector>
 
 #include "common/defs.h"
-#include "common/log/log.h"
 #include "common/os/path.h"
-#include "common/lang/string.h"
-#include "common/lang/vector.h"
-
+#include "common/log/log.h"
 namespace common {
 
-string getFileName(const string &fullPath)
+std::string getFileName(const std::string &fullPath)
 {
-  string szRt;
-  size_t      pos;
+  std::string szRt;
+  size_t pos;
   try {
     pos = fullPath.rfind(FILE_PATH_SPLIT);
-    if (pos != string::npos && pos < fullPath.size() - 1) {
+    if (pos != std::string::npos && pos < fullPath.size() - 1) {
       szRt = fullPath.substr(pos + 1, fullPath.size() - pos - 1);
-    } else if (pos == string::npos) {
+    } else if (pos == std::string::npos) {
       szRt = fullPath;
     } else {
       szRt = "";
@@ -42,7 +41,7 @@ string getFileName(const string &fullPath)
   return szRt;
 }
 
-void getFileName(const char *path, string &fileName)
+void getFileName(const char *path, std::string &fileName)
 {
   // Don't care the last character as FILE_PATH_SPLIT
   const char *endPos = strrchr(path, FILE_PATH_SPLIT);
@@ -60,15 +59,15 @@ void getFileName(const char *path, string &fileName)
   return;
 }
 
-string getDirName(const string &fullPath)
+std::string getDirName(const std::string &fullPath)
 {
-  string szRt;
-  size_t      pos;
+  std::string szRt;
+  size_t pos;
   try {
     pos = fullPath.rfind(FILE_PATH_SPLIT);
-    if (pos != string::npos && pos > 0) {
+    if (pos != std::string::npos && pos > 0) {
       szRt = fullPath.substr(0, pos);
-    } else if (pos == string::npos) {
+    } else if (pos == std::string::npos) {
       szRt = fullPath;
     } else {
       // pos == 0
@@ -78,7 +77,7 @@ string getDirName(const string &fullPath)
   } catch (...) {}
   return szRt;
 }
-void getDirName(const char *path, string &parent)
+void getDirName(const char *path, std::string &parent)
 {
   // Don't care the last character as FILE_PATH_SPLIT
   const char *endPos = strrchr(path, FILE_PATH_SPLIT);
@@ -96,15 +95,15 @@ void getDirName(const char *path, string &parent)
   return;
 }
 
-string getFilePath(const string &fullPath)
+std::string getFilePath(const std::string &fullPath)
 {
-  string szRt;
-  size_t      pos;
+  std::string szRt;
+  size_t pos;
   try {
     pos = fullPath.rfind("/");
-    if (pos != string::npos) {
+    if (pos != std::string::npos) {
       szRt = fullPath.substr(0, pos);
-    } else if (pos == string::npos) {
+    } else if (pos == std::string::npos) {
       szRt = fullPath;
     } else {
       szRt = "";
@@ -114,12 +113,12 @@ string getFilePath(const string &fullPath)
   return szRt;
 }
 
-string getAboslutPath(const char *path)
+std::string getAboslutPath(const char *path)
 {
-  string aPath(path);
+  std::string aPath(path);
   if (path[0] != '/') {
     const int MAX_SIZE = 256;
-    char      current_absolute_path[MAX_SIZE];
+    char current_absolute_path[MAX_SIZE];
 
     if (NULL == getcwd(current_absolute_path, MAX_SIZE)) {}
   }
@@ -133,7 +132,7 @@ bool is_directory(const char *path)
   return (0 == stat(path, &st)) && (st.st_mode & S_IFDIR);
 }
 
-bool check_directory(string &path)
+bool check_directory(std::string &path)
 {
   while (!path.empty() && path.back() == '/')
     path.erase(path.size() - 1, 1);
@@ -158,7 +157,7 @@ bool check_directory(string &path)
     if (0 != mkdir(path.c_str(), 0777) && !is_directory(path.c_str()))
       return false;
 
-    path[i]   = '/';
+    path[i] = '/';
     sep_state = true;
   }
 
@@ -167,7 +166,7 @@ bool check_directory(string &path)
   return true;
 }
 
-int list_file(const char *path, const char *filter_pattern, vector<string> &files)
+int list_file(const char *path, const char *filter_pattern, std::vector<std::string> &files)
 {
   regex_t reg;
   if (filter_pattern) {
@@ -194,7 +193,7 @@ int list_file(const char *path, const char *filter_pattern, vector<string> &file
   // as readdir is not thread-safe, it is better to use C++ directory
   // TODO
   struct dirent *pentry;
-  char           tmp_path[PATH_MAX];
+  char tmp_path[PATH_MAX];
   while ((pentry = readdir(pdir)) != NULL) {
     if ('.' == pentry->d_name[0])  // 跳过./..文件和隐藏文件
       continue;

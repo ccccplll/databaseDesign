@@ -13,21 +13,21 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "sql/executor/load_data_executor.h"
-#include "common/lang/string.h"
-#include "event/session_event.h"
 #include "event/sql_event.h"
+#include "event/session_event.h"
 #include "sql/executor/sql_result.h"
+#include "common/lang/string.h"
 #include "sql/stmt/load_data_stmt.h"
 
 using namespace common;
 
 RC LoadDataExecutor::execute(SQLStageEvent *sql_event)
 {
-  RC            rc         = RC::SUCCESS;
-  SqlResult    *sql_result = sql_event->session_event()->sql_result();
-  LoadDataStmt *stmt       = static_cast<LoadDataStmt *>(sql_event->stmt());
-  Table        *table      = stmt->table();
-  const char   *file_name  = stmt->filename();
+  RC rc = RC::SUCCESS;
+  SqlResult *sql_result = sql_event->session_event()->sql_result();
+  LoadDataStmt *stmt = static_cast<LoadDataStmt *>(sql_event->stmt());
+  Table *table = stmt->table();
+  const char *file_name = stmt->filename();
   load_data(table, file_name, sql_result);
   return rc;
 }
@@ -40,11 +40,13 @@ RC LoadDataExecutor::execute(SQLStageEvent *sql_event)
  * @param errmsg 如果出现错误，通过这个参数返回错误信息
  * @return 成功返回RC::SUCCESS
  */
-RC insert_record_from_file(
-    Table *table, std::vector<std::string> &file_values, std::vector<Value> &record_values, std::stringstream &errmsg)
+RC insert_record_from_file(Table *table, 
+                           std::vector<std::string> &file_values, 
+                           std::vector<Value> &record_values, 
+                           std::stringstream &errmsg)
 {
 
-  const int field_num     = record_values.size();
+  const int field_num = record_values.size();
   const int sys_field_num = table->table_meta().sys_field_num();
 
   if (file_values.size() < record_values.size()) {
@@ -58,10 +60,48 @@ RC insert_record_from_file(
     const FieldMeta *field = table->table_meta().field(i + sys_field_num);
 
     std::string &file_value = file_values[i];
-    if (field->type() != AttrType::CHARS) {
+    if (field->type() != CHARS) {
       common::strip(file_value);
     }
-    rc = DataType::type_instance(field->type())->set_value_from_str(record_values[i], file_value);
+
+    switch (field->type()) {
+      case INTS: {
+        deserialize_stream.clear();  // 清理stream的状态，防止多次解析出现异常
+        deserialize_stream.str(file_value);
+
+        int int_value;
+        deserialize_stream >> int_value;
+        if (!deserialize_stream || !deserialize_stream.eof()) {
+          errmsg << "need an integer but got '" << file_values[i] << "' (field index:" << i << ")";
+
+          rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
+        } else {
+          record_values[i].set_int(int_value);
+        }
+      }
+
+      break;
+      case FLOATS: {
+        deserialize_stream.clear();
+        deserialize_stream.str(file_value);
+
+        float float_value;
+        deserialize_stream >> float_value;
+        if (!deserialize_stream || !deserialize_stream.eof()) {
+          errmsg << "need a float number but got '" << file_values[i] << "'(field index:" << i << ")";
+          rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
+        } else {
+          record_values[i].set_float(float_value);
+        }
+      } break;
+      case CHARS: {
+        record_values[i].set_string(file_value.c_str());
+      } break;
+      default: {
+        errmsg << "Unsupported field type to loading: " << field->type();
+        rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      } break;
+    }
   }
 
   if (RC::SUCCESS == rc) {
@@ -92,15 +132,15 @@ void LoadDataExecutor::load_data(Table *table, const char *file_name, SqlResult 
   struct timespec begin_time;
   clock_gettime(CLOCK_MONOTONIC, &begin_time);
   const int sys_field_num = table->table_meta().sys_field_num();
-  const int field_num     = table->table_meta().field_num() - sys_field_num;
+  const int field_num = table->table_meta().field_num() - sys_field_num;
 
-  std::vector<Value>       record_values(field_num);
-  std::string              line;
+  std::vector<Value> record_values(field_num);
+  std::string line;
   std::vector<std::string> file_values;
-  const std::string        delim("|");
-  int                      line_num        = 0;
-  int                      insertion_count = 0;
-  RC                       rc              = RC::SUCCESS;
+  const std::string delim("|");
+  int line_num = 0;
+  int insertion_count = 0;
+  RC rc = RC::SUCCESS;
   while (!fs.eof() && RC::SUCCESS == rc) {
     std::getline(fs, line);
     line_num++;

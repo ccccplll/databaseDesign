@@ -12,16 +12,23 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021/4/20.
 //
 
+#include <chrono>
+
 #include "common/math/random_generator.h"
-#include "common/lang/chrono.h"
 
 namespace common {
 
-RandomGenerator::RandomGenerator() : randomData(chrono::system_clock::now().time_since_epoch().count()) {}
+RandomGenerator::RandomGenerator() : randomData(std::chrono::system_clock::now().time_since_epoch().count())
+{}
 
-RandomGenerator::~RandomGenerator() {}
+RandomGenerator::~RandomGenerator()
+{}
 
-unsigned int RandomGenerator::next() { return randomData(); }
+unsigned int RandomGenerator::next()
+{
+
+  return randomData();
+}
 
 unsigned int RandomGenerator::next(unsigned int range)
 {

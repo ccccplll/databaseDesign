@@ -12,19 +12,18 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2010
 //
 
-#pragma once
-
+#ifndef __COMMON_MATH_MD5_H__
+#define __COMMON_MATH_MD5_H__
 #include <stdio.h>
 namespace common {
 
-typedef unsigned char     *POINTER;
+typedef unsigned char *POINTER;
 typedef unsigned short int UINT2;
-typedef unsigned int       UINT4;
+typedef unsigned int UINT4;
 
-typedef struct
-{
-  UINT4         state[4];   /* state (ABCD) */
-  UINT4         count[2];   /* number of bits, modulo 2^64 (lsb first) */
+typedef struct {
+  UINT4 state[4];           /* state (ABCD) */
+  UINT4 count[2];           /* number of bits, modulo 2^64 (lsb first) */
   unsigned char buffer[64]; /* input buffer */
 } MD5_CTX;
 
@@ -68,3 +67,4 @@ void MD5Final(unsigned char[16], MD5_CTX *);
 #endif
 
 }  // namespace common
+#endif  //__COMMON_MATH_MD5_H__

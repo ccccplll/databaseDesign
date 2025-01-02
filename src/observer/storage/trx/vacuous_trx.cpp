@@ -14,34 +14,73 @@ See the Mulan PSL v2 for more details. */
 
 #include "storage/trx/vacuous_trx.h"
 
-RC VacuousTrxKit::init() { return RC::SUCCESS; }
+using namespace std;
 
-const vector<FieldMeta> *VacuousTrxKit::trx_fields() const { return nullptr; }
+RC VacuousTrxKit::init()
+{
+  return RC::SUCCESS;
+}
 
-Trx *VacuousTrxKit::create_trx(LogHandler &) { return new VacuousTrx; }
+const vector<FieldMeta> *VacuousTrxKit::trx_fields() const
+{
+  return nullptr;
+}
 
-Trx *VacuousTrxKit::create_trx(LogHandler &, int32_t /*trx_id*/) { return nullptr; }
+Trx *VacuousTrxKit::create_trx(CLogManager *)
+{
+  return new VacuousTrx;
+}
 
-void VacuousTrxKit::destroy_trx(Trx *trx) { delete trx; }
+Trx *VacuousTrxKit::create_trx(int32_t /*trx_id*/)
+{
+  return nullptr;
+}
 
-Trx *VacuousTrxKit::find_trx(int32_t /* trx_id */) { return nullptr; }
+void VacuousTrxKit::destroy_trx(Trx *)
+{}
 
-void VacuousTrxKit::all_trxes(vector<Trx *> &trxes) { return; }
+Trx *VacuousTrxKit::find_trx(int32_t /* trx_id */)
+{
+  return nullptr;
+}
 
-LogReplayer *VacuousTrxKit::create_log_replayer(Db &, LogHandler &) { return new VacuousTrxLogReplayer; }
+void VacuousTrxKit::all_trxes(std::vector<Trx *> &trxes)
+{
+  return;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
-RC VacuousTrx::insert_record(Table *table, Record &record) { return table->insert_record(record); }
+RC VacuousTrx::insert_record(Table *table, Record &record)
+{
+  return table->insert_record(record);
+}
 
-RC VacuousTrx::delete_record(Table *table, Record &record) { return table->delete_record(record); }
+RC VacuousTrx::delete_record(Table *table, Record &record)
+{
+  return table->delete_record(record);
+}
+RC VacuousTrx::update_record(Table *table, Record &record,Record &newRecord)
+{
+  return table->update_record(record,newRecord);
+}
 
-RC VacuousTrx::visit_record(Table *table, Record &record, ReadWriteMode) { return RC::SUCCESS; }
+RC VacuousTrx::visit_record(Table *table, Record &record, bool readonly)
+{
+  return RC::SUCCESS;
+}
 
-RC VacuousTrx::start_if_need() { return RC::SUCCESS; }
+RC VacuousTrx::start_if_need()
+{
+  return RC::SUCCESS;
+}
 
-RC VacuousTrx::commit() { return RC::SUCCESS; }
+RC VacuousTrx::commit()
+{
+  return RC::SUCCESS;
+}
 
-RC VacuousTrx::rollback() { return RC::SUCCESS; }
-
-RC VacuousTrx::redo(Db *, const LogEntry &) { return RC::SUCCESS; }
+RC VacuousTrx::rollback()
+{
+  return RC::SUCCESS;
+}

@@ -14,12 +14,12 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
-#include "common/lang/string.h"
-#include "common/lang/list.h"
+#include <list>
+#include <string>
 
 /**
  * @brief SQL调试信息
- * @details
+ * @details 
  * 希望在运行SQL时，可以直接输出一些调试信息到客户端。
  * 当前把调试信息都放在了session上，可以随着SQL语句输出。
  * 但是现在还不支持与输出调试信息与行数据同步输出。
@@ -27,16 +27,16 @@ See the Mulan PSL v2 for more details. */
 class SqlDebug
 {
 public:
-  SqlDebug()          = default;
+  SqlDebug() = default;
   virtual ~SqlDebug() = default;
 
-  void add_debug_info(const string &debug_info);
+  void add_debug_info(const std::string &debug_info);
   void clear_debug_info();
 
-  const list<string> &get_debug_infos() const;
+  const std::list<std::string> &get_debug_infos() const;
 
 private:
-  list<string> debug_infos_;
+  std::list<std::string> debug_infos_;
 };
 
 /**

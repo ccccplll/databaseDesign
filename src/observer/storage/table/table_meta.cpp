@@ -12,17 +12,18 @@ See the Mulan PSL v2 for more details. */
 // Created by Meiyi & Wangyunlai on 2021/5/12.
 //
 
-#include "common/lang/string.h"
-#include "common/lang/algorithm.h"
-#include "common/log/log.h"
-#include "common/global_context.h"
+#include <algorithm>
+#include <common/lang/string.h>
+
 #include "storage/table/table_meta.h"
-#include "storage/trx/trx.h"
 #include "json/json.h"
+#include "common/log/log.h"
+#include "storage/trx/trx.h"
+
+using namespace std;
 
 static const Json::StaticString FIELD_TABLE_ID("table_id");
 static const Json::StaticString FIELD_TABLE_NAME("table_name");
-static const Json::StaticString FIELD_STORAGE_FORMAT("storage_format");
 static const Json::StaticString FIELD_FIELDS("fields");
 static const Json::StaticString FIELD_INDEXES("indexes");
 
@@ -31,7 +32,6 @@ TableMeta::TableMeta(const TableMeta &other)
       name_(other.name_),
       fields_(other.fields_),
       indexes_(other.indexes_),
-      storage_format_(other.storage_format_),
       record_size_(other.record_size_)
 {}
 
@@ -43,45 +43,43 @@ void TableMeta::swap(TableMeta &other) noexcept
   std::swap(record_size_, other.record_size_);
 }
 
-RC TableMeta::init(int32_t table_id, const char *name, const std::vector<FieldMeta> *trx_fields,
-                   span<const AttrInfoSqlNode> attributes, StorageFormat storage_format)
+RC TableMeta::init(int32_t table_id, const char *name, int field_num, const AttrInfoSqlNode attributes[])
 {
   if (common::is_blank(name)) {
     LOG_ERROR("Name cannot be empty");
     return RC::INVALID_ARGUMENT;
   }
 
-  if (attributes.size() == 0) {
-    LOG_ERROR("Invalid argument. name=%s, field_num=%d", name, attributes.size());
+  if (field_num <= 0 || nullptr == attributes) {
+    LOG_ERROR("Invalid argument. name=%s, field_num=%d, attributes=%p", name, field_num, attributes);
     return RC::INVALID_ARGUMENT;
   }
 
   RC rc = RC::SUCCESS;
 
-  int field_offset  = 0;
-  int trx_field_num = 0;
-
+  int                      field_offset  = 4;
+  int                      trx_field_num = 0;
+  const vector<FieldMeta> *trx_fields    = TrxKit::instance()->trx_fields();
   if (trx_fields != nullptr) {
-    trx_fields_ = *trx_fields;
+    fields_.resize(field_num + trx_fields->size());
 
-    fields_.resize(attributes.size() + trx_fields->size());
     for (size_t i = 0; i < trx_fields->size(); i++) {
       const FieldMeta &field_meta = (*trx_fields)[i];
-      fields_[i] = FieldMeta(field_meta.name(), field_meta.type(), field_offset, field_meta.len(), false /*visible*/, field_meta.field_id());
+      fields_[i] = FieldMeta(field_meta.name(), field_meta.type(), field_offset, field_meta.len(), false /*visible*/,field_meta.isNullable(),i);
+      LOG_DEBUG("init the fields type: %d",field_meta.type());
       field_offset += field_meta.len();
     }
 
     trx_field_num = static_cast<int>(trx_fields->size());
   } else {
-    fields_.resize(attributes.size());
+    fields_.resize(field_num);
   }
 
-  for (size_t i = 0; i < attributes.size(); i++) {
+  for (int i = 0; i < field_num; i++) {
     const AttrInfoSqlNode &attr_info = attributes[i];
-    // `i` is the col_id of fields[i]
-    rc = fields_[i + trx_field_num].init(
-      attr_info.name.c_str(), attr_info.type, field_offset, attr_info.length, true /*visible*/, i);
-    if (OB_FAIL(rc)) {
+    rc                               = fields_[i + trx_field_num].init(
+        attr_info.name.c_str(), attr_info.type, field_offset, attr_info.length, true /*visible*/,attr_info.isNullable,i+trx_field_num);
+    if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to init field meta. table name=%s, field name: %s", name, attr_info.name.c_str());
       return rc;
     }
@@ -93,7 +91,6 @@ RC TableMeta::init(int32_t table_id, const char *name, const std::vector<FieldMe
 
   table_id_ = table_id;
   name_     = name;
-  storage_format_ = storage_format;
   LOG_INFO("Sussessfully initialized table meta. table id=%d, name=%s", table_id, name);
   return RC::SUCCESS;
 }
@@ -108,9 +105,9 @@ const char *TableMeta::name() const { return name_.c_str(); }
 
 const FieldMeta *TableMeta::trx_field() const { return &fields_[0]; }
 
-span<const FieldMeta> TableMeta::trx_fields() const
+const std::pair<const FieldMeta *, int> TableMeta::trx_fields() const
 {
-  return span<const FieldMeta>(fields_.data(), sys_field_num());
+  return std::pair<const FieldMeta *, int>{fields_.data(), sys_field_num()};
 }
 
 const FieldMeta *TableMeta::field(int index) const { return &fields_[index]; }
@@ -138,7 +135,14 @@ const FieldMeta *TableMeta::find_field_by_offset(int offset) const
 }
 int TableMeta::field_num() const { return fields_.size(); }
 
-int TableMeta::sys_field_num() const { return static_cast<int>(trx_fields_.size()); }
+int TableMeta::sys_field_num() const
+{
+  const vector<FieldMeta> *trx_fields = TrxKit::instance()->trx_fields();
+  if (nullptr == trx_fields) {
+    return 0;
+  }
+  return static_cast<int>(trx_fields->size());
+}
 
 const IndexMeta *TableMeta::index(const char *name) const
 {
@@ -168,10 +172,10 @@ int TableMeta::record_size() const { return record_size_; }
 
 int TableMeta::serialize(std::ostream &ss) const
 {
+
   Json::Value table_value;
   table_value[FIELD_TABLE_ID]   = table_id_;
   table_value[FIELD_TABLE_NAME] = name_;
-  table_value[FIELD_STORAGE_FORMAT] = static_cast<int>(storage_format_);
 
   Json::Value fields_value;
   for (const FieldMeta &field : fields_) {
@@ -235,17 +239,8 @@ int TableMeta::deserialize(std::istream &is)
     return -1;
   }
 
-  const Json::Value &storage_format_value = table_value[FIELD_STORAGE_FORMAT];
-  if (!table_id_value.isInt()) {
-    LOG_ERROR("Invalid storage format. json value=%s", storage_format_value.toStyledString().c_str());
-    return -1;
-  }
-
-  int32_t storage_format = storage_format_value.asInt();
-
-  RC  rc        = RC::SUCCESS;
-  int field_num = fields_value.size();
-
+  RC                     rc        = RC::SUCCESS;
+  int                    field_num = fields_value.size();
   std::vector<FieldMeta> fields(field_num);
   for (int i = 0; i < field_num; i++) {
     FieldMeta &field = fields[i];
@@ -262,16 +257,9 @@ int TableMeta::deserialize(std::istream &is)
   std::sort(fields.begin(), fields.end(), comparator);
 
   table_id_ = table_id;
-  storage_format_ = static_cast<StorageFormat>(storage_format);
   name_.swap(table_name);
   fields_.swap(fields);
-  record_size_ = fields_.back().offset() + fields_.back().len() - fields_.begin()->offset();
-
-  for (const FieldMeta &field_meta : fields_) {
-    if (!field_meta.visible()) {
-      trx_fields_.push_back(field_meta); // 字段加上trx标识更好
-    }
-  }
+  record_size_ = fields_.back().offset() + fields_.back().len() - fields_.begin()->offset()+4;
 
   const Json::Value &indexes_value = table_value[FIELD_INDEXES];
   if (!indexes_value.empty()) {

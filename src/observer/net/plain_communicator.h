@@ -14,17 +14,16 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
-#include "net/communicator.h"
-#include "common/lang/vector.h"
+#include <vector>
 
-class SqlResult;
+#include "net/communicator.h"
 
 /**
  * @brief 与客户端进行通讯
  * @ingroup Communicator
  * @details 使用简单的文本通讯协议，每个消息使用'\0'结尾
  */
-class PlainCommunicator : public Communicator
+class PlainCommunicator : public Communicator 
 {
 public:
   PlainCommunicator();
@@ -37,10 +36,8 @@ private:
   RC write_state(SessionEvent *event, bool &need_disconnect);
   RC write_debug(SessionEvent *event, bool &need_disconnect);
   RC write_result_internal(SessionEvent *event, bool &need_disconnect);
-  RC write_tuple_result(SqlResult *sql_result);
-  RC write_chunk_result(SqlResult *sql_result);
 
 protected:
-  vector<char> send_message_delimiter_;  ///< 发送消息分隔符
-  vector<char> debug_message_prefix_;    ///< 调试信息前缀
+  std::vector<char> send_message_delimiter_; ///< 发送消息分隔符
+  std::vector<char> debug_message_prefix_; ///< 调试信息前缀
 };

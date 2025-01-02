@@ -15,36 +15,33 @@ See the Mulan PSL v2 for more details. */
 #include "common/os/signal.h"
 #include "common/log/log.h"
 #include "pthread.h"
-#include "common/lang/iostream.h"
-
 namespace common {
 
-void set_signal_handler(int sig, sighandler_t func)
+void setSignalHandler(int sig, sighandler_t func)
 {
   struct sigaction newsa, oldsa;
   sigemptyset(&newsa.sa_mask);
-  newsa.sa_flags   = 0;
+  newsa.sa_flags = 0;
   newsa.sa_handler = func;
-
   int rc = sigaction(sig, &newsa, &oldsa);
   if (rc) {
-    cerr << "Failed to set signal " << sig << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
+    std::cerr << "Failed to set signal " << sig << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
   }
 }
 
 /*
 ** Set Singal handling Fucntion
 */
-void set_signal_handler(sighandler_t func)
+void setSignalHandler(sighandler_t func)
 {
-  set_signal_handler(SIGQUIT, func);
-  set_signal_handler(SIGINT, func);
-  set_signal_handler(SIGHUP, func);
-  set_signal_handler(SIGTERM, func);
+  setSignalHandler(SIGQUIT, func);
+  setSignalHandler(SIGINT, func);
+  setSignalHandler(SIGHUP, func);
+  setSignalHandler(SIGTERM, func);
   signal(SIGPIPE, SIG_IGN);
 }
 
-void block_default_signals(sigset_t *signal_set, sigset_t *old_set)
+void blockDefaultSignals(sigset_t *signal_set, sigset_t *old_set)
 {
   sigemptyset(signal_set);
 #ifndef DEBUG
@@ -56,7 +53,7 @@ void block_default_signals(sigset_t *signal_set, sigset_t *old_set)
   pthread_sigmask(SIG_BLOCK, signal_set, old_set);
 }
 
-void unblock_default_signals(sigset_t *signal_set, sigset_t *old_set)
+void unBlockDefaultSignals(sigset_t *signal_set, sigset_t *old_set)
 {
   sigemptyset(signal_set);
 #ifndef DEBUG
@@ -67,13 +64,13 @@ void unblock_default_signals(sigset_t *signal_set, sigset_t *old_set)
   pthread_sigmask(SIG_UNBLOCK, signal_set, old_set);
 }
 
-void *wait_for_signals(void *args)
+void *waitForSignals(void *args)
 {
   LOG_INFO("Start thread to wait signals.");
   sigset_t *signal_set = (sigset_t *)args;
-  int       sig_number = -1;
+  int sig_number = -1;
   while (true) {
-    errno   = 0;
+    errno = 0;
     int ret = sigwait(signal_set, &sig_number);
     LOG_INFO("sigwait return value: %d, %d \n", ret, sig_number);
     if (ret != 0) {
@@ -83,15 +80,15 @@ void *wait_for_signals(void *args)
   return NULL;
 }
 
-void start_wait_for_signals(sigset_t *signal_set)
+void startWaitForSignals(sigset_t *signal_set)
 {
-  pthread_t      pThread;
+  pthread_t pThread;
   pthread_attr_t pThreadAttrs;
 
   // create all threads as detached.  We will not try to join them.
   pthread_attr_init(&pThreadAttrs);
   pthread_attr_setdetachstate(&pThreadAttrs, PTHREAD_CREATE_DETACHED);
 
-  pthread_create(&pThread, &pThreadAttrs, wait_for_signals, (void *)signal_set);
+  pthread_create(&pThread, &pThreadAttrs, waitForSignals, (void *)signal_set);
 }
 }  // namespace common

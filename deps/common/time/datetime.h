@@ -12,7 +12,8 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2010
 //
 
-#pragma once
+#ifndef __COMMON_TIME_DATETIME_H__
+#define __COMMON_TIME_DATETIME_H__
 
 #include <math.h>
 #include <stdint.h>
@@ -23,7 +24,6 @@ See the Mulan PSL v2 for more details. */
 #include <iostream>
 
 #include "common/defs.h"
-#include "common/lang/string.h"
 
 namespace common {
 
@@ -45,28 +45,25 @@ namespace common {
  *  \sa http://scienceworld.wolfram.com/astronomy/Weekday.html
  */
 
-struct DateTime
-{
+struct DateTime {
   int m_date;
   int m_time;
 
-  enum
-  {
-    SECONDS_PER_DAY  = 86400,
+  enum {
+    SECONDS_PER_DAY = 86400,
     SECONDS_PER_HOUR = 3600,
-    SECONDS_PER_MIN  = 60,
+    SECONDS_PER_MIN = 60,
     MINUTES_PER_HOUR = 60,
 
-    MILLIS_PER_DAY  = 86400000,
+    MILLIS_PER_DAY = 86400000,
     MILLIS_PER_HOUR = 3600000,
-    MILLIS_PER_MIN  = 60000,
-    MILLIS_PER_SEC  = 1000,
+    MILLIS_PER_MIN = 60000,
+    MILLIS_PER_SEC = 1000,
 
     // time_t epoch (1970-01-01) as a Julian date
     JULIAN_19700101 = 2440588
   };
-  enum
-  {
+  enum {
     MON_JAN = 1,
     MON_FEB = 2,
     MON_MAR = 3,
@@ -82,10 +79,12 @@ struct DateTime
   };
 
   // Default constructor - initializes to zero
-  DateTime() : m_date(0), m_time(0) {}
+  DateTime() : m_date(0), m_time(0)
+  {}
 
   // Construct from a Julian day number and time in millis
-  DateTime(int date, int time) : m_date(date), m_time(time) {}
+  DateTime(int date, int time) : m_date(date), m_time(time)
+  {}
 
   // Construct from the specified components
   DateTime(int year, int month, int day, int hour, int minute, int second, int millis)
@@ -95,62 +94,80 @@ struct DateTime
   }
 
   // Construct from the xml datetime format
-  DateTime(string &xml_time);
+  DateTime(std::string &xml_time);
 
   // check whether a string is valid with a xml datetime format
-  static bool is_valid_xml_datetime(const string &str);
+  static bool is_valid_xml_datetime(const std::string &str);
 
   // Load the referenced values with the year, month and day
   // portions of the date in a single operation
-  inline void get_ymd(int &year, int &month, int &day) const { get_ymd(m_date, year, month, day); }
+  inline void get_ymd(int &year, int &month, int &day) const
+  {
+    get_ymd(m_date, year, month, day);
+  }
 
   // Load the referenced values with the hour, minute, second and
   // millisecond portions of the time in a single operation
   inline void get_hms(int &hour, int &minute, int &second, int &millis) const
   {
     int ticks = m_time / MILLIS_PER_SEC;
-    hour      = ticks / SECONDS_PER_HOUR;
-    minute    = (ticks / SECONDS_PER_MIN) % MINUTES_PER_HOUR;
-    second    = ticks % SECONDS_PER_MIN;
-    millis    = m_time % MILLIS_PER_SEC;
+    hour = ticks / SECONDS_PER_HOUR;
+    minute = (ticks / SECONDS_PER_MIN) % MINUTES_PER_HOUR;
+    second = ticks % SECONDS_PER_MIN;
+    millis = m_time % MILLIS_PER_SEC;
   }
 
   // Convert the DateTime to a time_t.  Note that this operation
   // can overflow on 32-bit platforms when we go beyond year 2038.
-  inline time_t to_time_t() const { return (SECONDS_PER_DAY * (m_date - JULIAN_19700101) + m_time / MILLIS_PER_SEC); }
+  inline time_t to_time_t() const
+  {
+    return (SECONDS_PER_DAY * (m_date - JULIAN_19700101) + m_time / MILLIS_PER_SEC);
+  }
 
   // Convert the DateTime to a struct tm which is in UTC
   tm to_tm() const
   {
     int year, month, day;
     int hour, minute, second, millis;
-    tm  result = {0};
+    tm result = {0};
 
     get_ymd(year, month, day);
     get_hms(hour, minute, second, millis);
 
-    result.tm_year  = year - 1900;
-    result.tm_mon   = month - 1;
-    result.tm_mday  = day;
-    result.tm_hour  = hour;
-    result.tm_min   = minute;
-    result.tm_sec   = second;
+    result.tm_year = year - 1900;
+    result.tm_mon = month - 1;
+    result.tm_mday = day;
+    result.tm_hour = hour;
+    result.tm_min = minute;
+    result.tm_sec = second;
     result.tm_isdst = -1;
 
     return result;
   }
 
   // Set the date portion of the DateTime
-  void set_ymd(int year, int month, int day) { m_date = julian_date(year, month, day); }
+  void set_ymd(int year, int month, int day)
+  {
+    m_date = julian_date(year, month, day);
+  }
 
   // Set the time portion of the DateTime
-  void set_hms(int hour, int minute, int second, int millis) { m_time = make_hms(hour, minute, second, millis); }
+  void set_hms(int hour, int minute, int second, int millis)
+  {
+    m_time = make_hms(hour, minute, second, millis);
+  }
 
   // Clear the date portion of the DateTime
-  void clear_date() { m_date = 0; }
+  void clear_date()
+  {
+    m_date = 0;
+  }
 
   // Clear the time portion of the DateTime
-  void clear_time() { m_time = 0; }
+  void clear_time()
+  {
+    m_time = 0;
+  }
 
   // Set the internal date and time members
   void set(int date, int time)
@@ -185,19 +202,19 @@ struct DateTime
   }
 
   // Return date and time as a string in XML Schema Date-Time format
-  string to_xml_date_time();
+  std::string to_xml_date_time();
 
   // Return time_t from XML schema date-time format.
-  time_t str_to_time_t(string &xml_str);
+  time_t str_to_time_t(std::string &xml_str);
 
   // Return xml time str from time_t.
-  string time_t_to_xml_str(time_t timet);
+  std::string time_t_to_xml_str(time_t timet);
 
   // Return time_t str from time_t.
-  string time_t_to_str(int timet);
+  std::string time_t_to_str(int timet);
 
   // Return time_t string from XML schema date-time format.
-  string str_to_time_t_str(string &xml_str);
+  std::string str_to_time_t_str(std::string &xml_str);
 
   // Helper method to convert a broken down time to a number of
   // milliseconds since midnight
@@ -216,7 +233,7 @@ struct DateTime
   static DateTime from_time_t(time_t t, int millis = 0)
   {
     struct tm tmbuf;
-    tm       *tm = gmtime_r(&t, &tmbuf);
+    tm *tm = gmtime_r(&t, &tmbuf);
     return from_tm(*tm, millis);
   }
 
@@ -246,48 +263,48 @@ struct DateTime
     int d = (4 * c + 3) / 1461;
     int e = c - int((1461 * d) / 4);
     int m = (5 * e + 2) / 153;
-    day   = e - int((153 * m + 2) / 5) + 1;
+    day = e - int((153 * m + 2) / 5) + 1;
     month = m + 3 - 12 * int(m / 10);
-    year  = b * 100 + d - 4800 + int(m / 10);
+    year = b * 100 + d - 4800 + int(m / 10);
   }
 
   // Return a human-friendly string representation of the timestamp,
   // expressed in terms of the local timezone
-  string to_string_local()
+  std::string to_string_local()
   {
     const time_t tt = to_time_t();
     // 'man asctime' specifies that buffer must be at least 26 bytes
-    char      buffer[32];
+    char buffer[32];
     struct tm tm;
     asctime_r(localtime_r(&tt, &tm), &(buffer[0]));
-    string s(buffer);
+    std::string s(buffer);
     return s;
   }
 
   // Return a human-friendly string representation of the timestamp,
   // expressed in terms of Coordinated Universal Time (UTC)
-  string to_string_utc()
+  std::string to_string_utc()
   {
     const time_t tt = to_time_t();
     // 'man asctime' specifies that buffer must be at least 26 bytes
-    char      buffer[32];
+    char buffer[32];
     struct tm tm;
     asctime_r(gmtime_r(&tt, &tm), &(buffer[0]));
-    string s(buffer);
+    std::string s(buffer);
     return s;
   }
 
   // add duration to this time
-  time_t add_duration(string xml_dur);
+  time_t add_duration(std::string xml_dur);
 
   // add duration to this time
-  void add_duration_date_time(string xml_dur);
+  void add_duration_date_time(std::string xml_dur);
 
   // add duration to this time
   int max_day_in_month_for(int year, int month);
 
   // parse the duration string and convert it to struct tm
-  void parse_duration(string dur_str, struct tm &tm_t);
+  void parse_duration(std::string dur_str, struct tm &tm_t);
 };
 
 inline bool operator==(const DateTime &lhs, const DateTime &rhs)
@@ -295,7 +312,10 @@ inline bool operator==(const DateTime &lhs, const DateTime &rhs)
   return lhs.m_date == rhs.m_date && lhs.m_time == rhs.m_time;
 }
 
-inline bool operator!=(const DateTime &lhs, const DateTime &rhs) { return !(lhs == rhs); }
+inline bool operator!=(const DateTime &lhs, const DateTime &rhs)
+{
+  return !(lhs == rhs);
+}
 
 inline bool operator<(const DateTime &lhs, const DateTime &rhs)
 {
@@ -308,11 +328,20 @@ inline bool operator<(const DateTime &lhs, const DateTime &rhs)
   return false;
 }
 
-inline bool operator>(const DateTime &lhs, const DateTime &rhs) { return !(lhs == rhs || lhs < rhs); }
+inline bool operator>(const DateTime &lhs, const DateTime &rhs)
+{
+  return !(lhs == rhs || lhs < rhs);
+}
 
-inline bool operator<=(const DateTime &lhs, const DateTime &rhs) { return lhs == rhs || lhs < rhs; }
+inline bool operator<=(const DateTime &lhs, const DateTime &rhs)
+{
+  return lhs == rhs || lhs < rhs;
+}
 
-inline bool operator>=(const DateTime &lhs, const DateTime &rhs) { return lhs == rhs || lhs > rhs; }
+inline bool operator>=(const DateTime &lhs, const DateTime &rhs)
+{
+  return lhs == rhs || lhs > rhs;
+}
 
 // Calculate the difference between two DateTime values and return
 // the result as a number of seconds
@@ -324,11 +353,11 @@ inline int operator-(const DateTime &lhs, const DateTime &rhs)
 }
 
 // Date and Time represented in UTC.
-class TimeStamp : public DateTime
-{
+class TimeStamp : public DateTime {
 public:
   // Defaults to the current date and time
-  TimeStamp() : DateTime(DateTime::now()) {}
+  TimeStamp() : DateTime(DateTime::now())
+  {}
 
   // Defaults to the current date
   TimeStamp(int hour, int minute, int second, int millisecond = 0) : DateTime(DateTime::now())
@@ -344,61 +373,89 @@ public:
       : DateTime(year, month, date, hour, minute, second, millisecond)
   {}
 
-  TimeStamp(time_t time, int millisecond = 0) : DateTime(from_time_t(time, millisecond)) {}
+  TimeStamp(time_t time, int millisecond = 0) : DateTime(from_time_t(time, millisecond))
+  {}
 
-  TimeStamp(const tm *time, int millisecond = 0) : DateTime(from_tm(*time, millisecond)) {}
+  TimeStamp(const tm *time, int millisecond = 0) : DateTime(from_tm(*time, millisecond))
+  {}
 
-  void set_current() { set(DateTime::now()); }
+  void set_current()
+  {
+    set(DateTime::now());
+  }
 };
 
 // Time only represented in UTC.
-class Time : public DateTime
-{
+class Time : public DateTime {
 public:
   // Defaults to the current time
-  Time() { set_current(); }
+  Time()
+  {
+    set_current();
+  }
 
-  Time(const DateTime &val) : DateTime(val) { clear_date(); }
+  Time(const DateTime &val) : DateTime(val)
+  {
+    clear_date();
+  }
 
-  Time(int hour, int minute, int second, int millisecond = 0) { set_hms(hour, minute, second, millisecond); }
+  Time(int hour, int minute, int second, int millisecond = 0)
+  {
+    set_hms(hour, minute, second, millisecond);
+  }
 
-  Time(time_t time, int millisecond = 0) : DateTime(from_time_t(time, millisecond)) { clear_date(); }
+  Time(time_t time, int millisecond = 0) : DateTime(from_time_t(time, millisecond))
+  {
+    clear_date();
+  }
 
-  Time(const tm *time, int millisecond = 0) : DateTime(from_tm(*time, millisecond)) { clear_date(); }
+  Time(const tm *time, int millisecond = 0) : DateTime(from_tm(*time, millisecond))
+  {
+    clear_date();
+  }
 
   // Set to the current time.
   void set_current()
   {
     DateTime d = now();
-    m_time     = d.m_time;
+    m_time = d.m_time;
   }
 };
 
 // Date only represented in UTC.
-class Date : public DateTime
-{
+class Date : public DateTime {
 public:
   // Defaults to the current date
-  Date() { set_current(); }
+  Date()
+  {
+    set_current();
+  }
 
-  Date(const DateTime &val) : DateTime(val) { clear_time(); }
+  Date(const DateTime &val) : DateTime(val)
+  {
+    clear_time();
+  }
 
-  Date(int date, int month, int year) : DateTime(year, month, date, 0, 0, 0, 0) {}
+  Date(int date, int month, int year) : DateTime(year, month, date, 0, 0, 0, 0)
+  {}
 
-  Date(long sec) : DateTime(sec / DateTime::SECONDS_PER_DAY, 0) {}
+  Date(long sec) : DateTime(sec / DateTime::SECONDS_PER_DAY, 0)
+  {}
 
-  Date(const tm *time) : DateTime(from_tm(*time)) { clear_time(); }
+  Date(const tm *time) : DateTime(from_tm(*time))
+  {
+    clear_time();
+  }
 
   // Set to the current time.
   void set_current()
   {
     DateTime d = now();
-    m_date     = d.m_date;
+    m_date = d.m_date;
   }
 };
 
-class Now
-{
+class Now {
 public:
   static inline int64_t sec()
   {
@@ -428,7 +485,8 @@ public:
     return msec;
   }
 
-  static string unique();
+  static std::string unique();
 };
 
 }  // namespace common
+#endif  //__COMMON_TIME_DATETIME_H__

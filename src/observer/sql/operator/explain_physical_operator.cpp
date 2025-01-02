@@ -12,9 +12,9 @@ See the Mulan PSL v2 for more details. */
 // Created by WangYunlai on 2022/12/27.
 //
 
+#include <sstream>
 #include "sql/operator/explain_physical_operator.h"
 #include "common/log/log.h"
-#include <sstream>
 
 using namespace std;
 
@@ -24,14 +24,24 @@ RC ExplainPhysicalOperator::open(Trx *)
   return RC::SUCCESS;
 }
 
-RC ExplainPhysicalOperator::close() { return RC::SUCCESS; }
-
-void ExplainPhysicalOperator::generate_physical_plan()
+RC ExplainPhysicalOperator::close()
 {
+  for (std::unique_ptr<PhysicalOperator> &child_oper : children_) {
+    child_oper->close();
+  }
+  return RC::SUCCESS;
+}
+
+RC ExplainPhysicalOperator::next()
+{
+  if (!physical_plan_.empty()) {
+    return RC::RECORD_EOF;
+  }
+
   stringstream ss;
   ss << "OPERATOR(NAME)\n";
 
-  int               level = 0;
+  int level = 0;
   std::vector<bool> ends;
   ends.push_back(true);
   const auto children_size = static_cast<int>(children_.size());
@@ -43,37 +53,19 @@ void ExplainPhysicalOperator::generate_physical_plan()
   }
 
   physical_plan_ = ss.str();
-}
-
-RC ExplainPhysicalOperator::next()
-{
-  if (!physical_plan_.empty()) {
-    return RC::RECORD_EOF;
-  }
-  generate_physical_plan();
 
   vector<Value> cells;
-  Value         cell(physical_plan_.c_str());
+  Value cell;
+  cell.set_string(physical_plan_.c_str());
   cells.emplace_back(cell);
   tuple_.set_cells(cells);
   return RC::SUCCESS;
 }
 
-RC ExplainPhysicalOperator::next(Chunk &chunk)
+Tuple *ExplainPhysicalOperator::current_tuple()
 {
-  if (!physical_plan_.empty()) {
-    return RC::RECORD_EOF;
-  }
-  generate_physical_plan();
-
-  Value         cell(physical_plan_.c_str());
-  auto column = make_unique<Column>();
-  column->init(cell);
-  chunk.add_column(std::move(column), 0);
-  return RC::SUCCESS;
+  return &tuple_;
 }
-
-Tuple *ExplainPhysicalOperator::current_tuple() { return &tuple_; }
 
 /**
  * 递归打印某个算子
@@ -115,7 +107,7 @@ void ExplainPhysicalOperator::to_string(
   ends[level + 1] = false;
 
   vector<std::unique_ptr<PhysicalOperator>> &children = oper->children();
-  const auto                                 size     = static_cast<int>(children.size());
+  const auto size = static_cast<int>(children.size());
   for (auto i = 0; i < size - 1; i++) {
     to_string(os, children[i].get(), level + 1, false /*last_child*/, ends);
   }

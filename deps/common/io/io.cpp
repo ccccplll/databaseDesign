@@ -23,14 +23,15 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/string.h"
 #include "common/log/log.h"
 #include "common/math/regex.h"
+#include "common/mm/mem.h"
 
 namespace common {
 
-int readFromFile(const string &fileName, char *&outputData, size_t &fileSize)
+int readFromFile(const std::string &fileName, char *&outputData, size_t &fileSize)
 {
   FILE *file = fopen(fileName.c_str(), "rb");
   if (file == NULL) {
-    cerr << "Failed to open file " << fileName << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
+    std::cerr << "Failed to open file " << fileName << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
     return -1;
   }
 
@@ -38,28 +39,28 @@ int readFromFile(const string &fileName, char *&outputData, size_t &fileSize)
   // size_t fsSize = ftell( file );
   // fseek( file, 0, SEEK_SET );
 
-  char   buffer[4 * ONE_KILO];
+  char buffer[4 * ONE_KILO];
   size_t readSize = 0;
-  size_t oneRead  = 0;
+  size_t oneRead = 0;
 
   char *data = NULL;
   do {
     memset(buffer, 0, sizeof(buffer));
     oneRead = fread(buffer, 1, sizeof(buffer), file);
     if (ferror(file)) {
-      cerr << "Failed to read data" << fileName << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
+      std::cerr << "Failed to read data" << fileName << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
       fclose(file);
       if (data != NULL) {
-        free(data);
+        lfree(data);
         data = NULL;
       }
       return -1;
     }
 
-    data = (char *)realloc(data, readSize + oneRead);
+    data = (char *)lrealloc(data, readSize + oneRead);
     if (data == NULL) {
-      cerr << "Failed to alloc memory for " << fileName << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
-      free(data);
+      std::cerr << "Failed to alloc memory for " << fileName << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
+      lfree(data);
       fclose(file);
       return -1;
     } else {
@@ -71,27 +72,27 @@ int readFromFile(const string &fileName, char *&outputData, size_t &fileSize)
 
   fclose(file);
 
-  data           = (char *)realloc(data, readSize + 1);
+  data = (char *)lrealloc(data, readSize + 1);
   data[readSize] = '\0';
-  outputData     = data;
-  fileSize       = readSize;
+  outputData = data;
+  fileSize = readSize;
   return 0;
 }
 
-int writeToFile(const string &fileName, const char *data, uint32_t dataSize, const char *openMode)
+int writeToFile(const std::string &fileName, const char *data, uint32_t dataSize, const char *openMode)
 {
   FILE *file = fopen(fileName.c_str(), openMode);
   if (file == NULL) {
-    cerr << "Failed to open file " << fileName << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
+    std::cerr << "Failed to open file " << fileName << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
     return -1;
   }
 
-  uint32_t    leftSize = dataSize;
-  const char *buffer   = data;
+  uint32_t leftSize = dataSize;
+  const char *buffer = data;
   while (leftSize > 0) {
     int writeCount = fwrite(buffer, 1, leftSize, file);
     if (writeCount <= 0) {
-      cerr << "Failed to open file " << fileName << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
+      std::cerr << "Failed to open file " << fileName << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
       fclose(file);
       return -1;
     } else {
@@ -105,13 +106,13 @@ int writeToFile(const string &fileName, const char *data, uint32_t dataSize, con
   return 0;
 }
 
-int getFileLines(const string &fileName, uint64_t &lineNum)
+int getFileLines(const std::string &fileName, uint64_t &lineNum)
 {
   lineNum = 0;
 
   char line[4 * ONE_KILO] = {0};
 
-  ifstream ifs(fileName.c_str());
+  std::ifstream ifs(fileName.c_str());
   if (!ifs) {
     return -1;
   }
@@ -129,19 +130,19 @@ int getFileLines(const string &fileName, uint64_t &lineNum)
   return 0;
 }
 
-int getFileNum(int64_t &fileNum, const string &path, const string &pattern, bool recursive)
+int getFileNum(int64_t &fileNum, const std::string &path, const std::string &pattern, bool recursive)
 {
   try {
     DIR *dirp = NULL;
-    dirp      = opendir(path.c_str());
+    dirp = opendir(path.c_str());
     if (dirp == NULL) {
-      cerr << "Failed to opendir " << path << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
+      std::cerr << "Failed to opendir " << path << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
       return -1;
     }
 
-    string    fullPath;
+    std::string fullPath;
     struct dirent *entry = NULL;
-    struct stat    fs;
+    struct stat fs;
     while ((entry = readdir(dirp)) != NULL) {
       // don't care ".", "..", ".****" hidden files
       if (!strncmp(entry->d_name, ".", 1)) {
@@ -155,7 +156,7 @@ int getFileNum(int64_t &fileNum, const string &path, const string &pattern, bool
       fullPath += entry->d_name;
       memset(&fs, 0, sizeof(fs));
       if (stat(fullPath.c_str(), &fs) < 0) {
-        cout << "Failed to stat " << fullPath << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
+        std::cout << "Failed to stat " << fullPath << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
         continue;
       }
 
@@ -187,24 +188,24 @@ int getFileNum(int64_t &fileNum, const string &path, const string &pattern, bool
 
     return 0;
   } catch (...) {
-    cerr << "Failed to get file num " << path << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
+    std::cerr << "Failed to get file num " << path << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
   }
   return -1;
 }
 
-int getFileList(vector<string> &fileList, const string &path, const string &pattern, bool recursive)
+int getFileList(std::vector<std::string> &fileList, const std::string &path, const std::string &pattern, bool recursive)
 {
   try {
     DIR *dirp = NULL;
-    dirp      = opendir(path.c_str());
+    dirp = opendir(path.c_str());
     if (dirp == NULL) {
-      cerr << "Failed to opendir " << path << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
+      std::cerr << "Failed to opendir " << path << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
       return -1;
     }
 
-    string    fullPath;
+    std::string fullPath;
     struct dirent *entry = NULL;
-    struct stat    fs;
+    struct stat fs;
     while ((entry = readdir(dirp)) != NULL) {
       // don't care ".", "..", ".****" hidden files
       if (!strncmp(entry->d_name, ".", 1)) {
@@ -218,7 +219,7 @@ int getFileList(vector<string> &fileList, const string &path, const string &patt
       fullPath += entry->d_name;
       memset(&fs, 0, sizeof(fs));
       if (stat(fullPath.c_str(), &fs) < 0) {
-        cout << "Failed to stat " << fullPath << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
+        std::cout << "Failed to stat " << fullPath << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
         continue;
       }
 
@@ -249,24 +250,24 @@ int getFileList(vector<string> &fileList, const string &path, const string &patt
     closedir(dirp);
     return 0;
   } catch (...) {
-    cerr << "Failed to get file list " << path << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
+    std::cerr << "Failed to get file list " << path << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
   }
   return -1;
 }
 
-int getDirList(vector<string> &dirList, const string &path, const string &pattern)
+int getDirList(std::vector<std::string> &dirList, const std::string &path, const std::string &pattern)
 {
   try {
     DIR *dirp = NULL;
-    dirp      = opendir(path.c_str());
+    dirp = opendir(path.c_str());
     if (dirp == NULL) {
-      cerr << "Failed to opendir " << path << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
+      std::cerr << "Failed to opendir " << path << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
       return -1;
     }
 
-    string    fullPath;
+    std::string fullPath;
     struct dirent *entry = NULL;
-    struct stat    fs;
+    struct stat fs;
     while ((entry = readdir(dirp)) != NULL) {
       // don't care ".", "..", ".****" hidden files
       if (!strncmp(entry->d_name, ".", 1)) {
@@ -280,7 +281,7 @@ int getDirList(vector<string> &dirList, const string &path, const string &patter
       fullPath += entry->d_name;
       memset(&fs, 0, sizeof(fs));
       if (stat(fullPath.c_str(), &fs) < 0) {
-        cout << "Failed to stat " << fullPath << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
+        std::cout << "Failed to stat " << fullPath << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
         continue;
       }
 
@@ -299,12 +300,12 @@ int getDirList(vector<string> &dirList, const string &path, const string &patter
     closedir(dirp);
     return 0;
   } catch (...) {
-    cerr << "Failed to get file list " << path << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << endl;
+    std::cerr << "Failed to get file list " << path << SYS_OUTPUT_FILE_POS << SYS_OUTPUT_ERROR << std::endl;
   }
   return -1;
 }
 
-int touch(const string &path)
+int touch(const std::string &path)
 {
   // CWE367: A check occurs on a file's attributes before
   // the file is used in a privileged operation, but things
@@ -329,7 +330,7 @@ int touch(const string &path)
 int getFileSize(const char *filePath, int64_t &fileLen)
 {
   if (filePath == NULL || *filePath == '\0') {
-    cerr << "invalid filepath" << endl;
+    std::cerr << "invalid filepath" << std::endl;
     return -EINVAL;
   }
   struct stat statBuf;
@@ -337,12 +338,12 @@ int getFileSize(const char *filePath, int64_t &fileLen)
 
   int rc = stat(filePath, &statBuf);
   if (rc) {
-    cerr << "Failed to get stat of " << filePath << "," << errno << ":" << strerror(errno) << endl;
+    std::cerr << "Failed to get stat of " << filePath << "," << errno << ":" << strerror(errno) << std::endl;
     return rc;
   }
 
   if (S_ISDIR(statBuf.st_mode)) {
-    cerr << filePath << " is directory " << endl;
+    std::cerr << filePath << " is directory " << std::endl;
     return -EINVAL;
   }
 
@@ -353,17 +354,17 @@ int getFileSize(const char *filePath, int64_t &fileLen)
 int writen(int fd, const void *buf, int size)
 {
   const char *tmp = (const char *)buf;
-  while (size > 0) {
+  while ( size > 0) {
     const ssize_t ret = ::write(fd, tmp, size);
     if (ret >= 0) {
-      tmp += ret;
+      tmp  += ret;
       size -= ret;
       continue;
     }
     const int err = errno;
     if (EAGAIN != err && EINTR != err)
       return err;
-  }
+   }
   return 0;
 }
 
@@ -373,12 +374,12 @@ int readn(int fd, void *buf, int size)
   while (size > 0) {
     const ssize_t ret = ::read(fd, tmp, size);
     if (ret > 0) {
-      tmp += ret;
+      tmp  += ret;
       size -= ret;
       continue;
     }
     if (0 == ret)
-      return -1;  // end of file
+      return -1; // end of file
 
     const int err = errno;
     if (EAGAIN != err && EINTR != err)

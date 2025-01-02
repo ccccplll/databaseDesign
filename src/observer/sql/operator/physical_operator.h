@@ -14,9 +14,9 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <vector>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "common/rc.h"
 #include "sql/expr/tuple.h"
@@ -38,23 +38,18 @@ class Trx;
 enum class PhysicalOperatorType
 {
   TABLE_SCAN,
-  TABLE_SCAN_VEC,
   INDEX_SCAN,
   NESTED_LOOP_JOIN,
   EXPLAIN,
   PREDICATE,
-  PREDICATE_VEC,
   PROJECT,
-  PROJECT_VEC,
   CALC,
   STRING_LIST,
   DELETE,
   INSERT,
-  SCALAR_GROUP_BY,
-  HASH_GROUP_BY,
-  GROUP_BY_VEC,
-  AGGREGATE_VEC,
-  EXPR_VEC,
+  UPDATE,
+  AGGREGATION,
+  SORT
 };
 
 /**
@@ -66,7 +61,7 @@ class PhysicalOperator
 public:
   PhysicalOperator() = default;
 
-  virtual ~PhysicalOperator() = default;
+  virtual ~PhysicalOperator();
 
   /**
    * 这两个函数是为了打印时使用的，比如在explain中
@@ -77,17 +72,20 @@ public:
   virtual PhysicalOperatorType type() const = 0;
 
   virtual RC open(Trx *trx) = 0;
-  virtual RC next() { return RC::UNIMPLEMENTED; }
-  virtual RC next(Chunk &chunk) { return RC::UNIMPLEMENTED; }
+  virtual RC next() = 0;
   virtual RC close() = 0;
 
-  virtual Tuple *current_tuple() { return nullptr; }
+  virtual Tuple *current_tuple() = 0;
 
-  virtual RC tuple_schema(TupleSchema &schema) const { return RC::UNIMPLEMENTED; }
+  void add_child(std::unique_ptr<PhysicalOperator> oper)
+  {
+    children_.emplace_back(std::move(oper));
+  }
 
-  void add_child(std::unique_ptr<PhysicalOperator> oper) { children_.emplace_back(std::move(oper)); }
-
-  std::vector<std::unique_ptr<PhysicalOperator>> &children() { return children_; }
+  std::vector<std::unique_ptr<PhysicalOperator>> &children()
+  {
+    return children_;
+  }
 
 protected:
   std::vector<std::unique_ptr<PhysicalOperator>> children_;

@@ -22,45 +22,32 @@ See the Mulan PSL v2 for more details. */
 class VacuousTrxKit : public TrxKit
 {
 public:
-  VacuousTrxKit()          = default;
+  VacuousTrxKit() = default;
   virtual ~VacuousTrxKit() = default;
 
-  RC                       init() override;
-  const vector<FieldMeta> *trx_fields() const override;
-
-  Trx *create_trx(LogHandler &log_handler) override;
-  Trx *create_trx(LogHandler &log_handler, int32_t trx_id) override;
+  RC init() override;
+  const std::vector<FieldMeta> *trx_fields() const override;
+  Trx *create_trx(CLogManager *log_manager) override;
+  Trx *create_trx(int32_t trx_id) override;
   Trx *find_trx(int32_t trx_id) override;
-  void all_trxes(vector<Trx *> &trxes) override;
+  void all_trxes(std::vector<Trx *> &trxes) override;
 
   void destroy_trx(Trx *trx) override;
-
-  LogReplayer *create_log_replayer(Db &db, LogHandler &log_handler) override;
 };
 
 class VacuousTrx : public Trx
 {
 public:
-  VacuousTrx()          = default;
+  VacuousTrx() = default;
   virtual ~VacuousTrx() = default;
 
   RC insert_record(Table *table, Record &record) override;
   RC delete_record(Table *table, Record &record) override;
-  RC visit_record(Table *table, Record &record, ReadWriteMode mode) override;
+  RC update_record(Table *table, Record &record,Record &newRecord) override;
+  RC visit_record(Table *table, Record &record, bool readonly) override;
   RC start_if_need() override;
   RC commit() override;
   RC rollback() override;
 
-  RC redo(Db *db, const LogEntry &log_entry) override;
-
   int32_t id() const override { return 0; }
-};
-
-class VacuousTrxLogReplayer : public LogReplayer
-{
-public:
-  VacuousTrxLogReplayer()          = default;
-  virtual ~VacuousTrxLogReplayer() = default;
-
-  RC replay(const LogEntry &) override { return RC::SUCCESS; }
 };

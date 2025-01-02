@@ -15,15 +15,15 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include <stddef.h>
+#include <vector>
+#include <limits>
+#include <sstream>
 
-#include "common/log/log.h"
 #include "common/rc.h"
 #include "common/types.h"
-#include "common/lang/vector.h"
-#include "common/lang/sstream.h"
-#include "common/lang/limits.h"
-#include "storage/field/field_meta.h"
+#include "common/log/log.h"
 #include "storage/index/index_meta.h"
+#include "storage/field/field_meta.h"
 
 class Field;
 
@@ -39,9 +39,9 @@ struct RID
   RID() = default;
   RID(const PageNum _page_num, const SlotNum _slot_num) : page_num(_page_num), slot_num(_slot_num) {}
 
-  const string to_string() const
+  const std::string to_string() const
   {
-    stringstream ss;
+    std::stringstream ss;
     ss << "PageNum:" << page_num << ", SlotNum:" << slot_num;
     return ss.str();
   }
@@ -77,25 +77,16 @@ struct RID
    */
   static RID *max()
   {
-    static RID rid{numeric_limits<PageNum>::max(), numeric_limits<SlotNum>::max()};
+    static RID rid{std::numeric_limits<PageNum>::max(), std::numeric_limits<SlotNum>::max()};
     return &rid;
-  }
-};
-
-struct RIDHash
-{
-  size_t operator()(const RID &rid) const noexcept
-  {
-    return std::hash<PageNum>()(rid.page_num) ^ std::hash<SlotNum>()(rid.slot_num);
   }
 };
 
 /**
  * @brief 表示一个记录
- * @details 当前的记录都是连续存放的空间（内存或磁盘上）。
+ * 当前的记录都是连续存放的空间（内存或磁盘上）。
  * 为了提高访问的效率，record通常直接记录指向页面上的内存，但是需要保证访问这种数据时，拿着锁资源。
  * 为了方便，也提供了复制内存的方法。可以参考set_data_owner
- * @note 可以拆分成两种实现，一个是需要自己管理内存的，一个是不需要自己管理内存的。
  */
 class Record
 {
@@ -130,43 +121,8 @@ public:
       return *this;
     }
 
-    if (!owner_ || len_ != other.len_) {
-      this->~Record();
-      new (this) Record(other);
-      return *this;
-    }
-    this->rid_ = other.rid_;
-    memcpy(data_, other.data_, other.len_);
-    return *this;
-  }
-
-  Record(Record &&other)
-  {
-    rid_ = other.rid_;
-
-    if (!other.owner_) {
-      data_        = other.data_;
-      len_         = other.len_;
-      other.data_  = nullptr;
-      other.len_   = 0;
-      this->owner_ = false;
-    } else {
-      data_        = other.data_;
-      len_         = other.len_;
-      other.data_  = nullptr;
-      other.len_   = 0;
-      this->owner_ = true;
-    }
-  }
-
-  Record &operator=(Record &&other)
-  {
-    if (this == &other) {
-      return *this;
-    }
-
     this->~Record();
-    new (this) Record(std::move(other));
+    new (this) Record(other);
     return *this;
   }
 
@@ -183,47 +139,6 @@ public:
     this->data_  = data;
     this->len_   = len;
     this->owner_ = true;
-  }
-
-  RC copy_data(const char *data, int len)
-  {
-    ASSERT(len!= 0, "the len of data should not be 0");
-    char *tmp = (char *)malloc(len);
-    if (nullptr == tmp) {
-      LOG_WARN("failed to allocate memory. size=%d", len);
-      return RC::NOMEM;
-    }
-
-    memcpy(tmp, data, len);
-    set_data_owner(tmp, len);
-    return RC::SUCCESS;
-  }
-
-  RC new_record(int len)
-  {
-    ASSERT(len!= 0, "the len of data should not be 0");
-    char *tmp = (char *)malloc(len);
-    if (nullptr == tmp) {
-      LOG_WARN("failed to allocate memory. size=%d", len);
-      return RC::NOMEM;
-    }
-    set_data_owner(tmp, len);
-    return RC::SUCCESS;
-  }
-
-  RC set_field(int field_offset, int field_len, char *data)
-  {
-    if (!owner_) {
-      LOG_ERROR("cannot set field when record does not own the memory");
-      return RC::INTERNAL;
-    }
-    if (field_offset + field_len > len_) {
-      LOG_ERROR("invalid offset or length. offset=%d, length=%d, total length=%d", field_offset, field_len, len_);
-      return RC::INVALID_ARGUMENT;
-    }
-
-    memcpy(data_ + field_offset, data, field_len);
-    return RC::SUCCESS;
   }
 
   char       *data() { return this->data_; }
@@ -243,6 +158,6 @@ private:
   RID rid_;
 
   char *data_  = nullptr;
-  int   len_   = 0;      /// 如果不是record自己来管理内存，这个字段可能是无效的
-  bool  owner_ = false;  /// 表示当前是否由record来管理内存
+  int   len_   = 0;       /// 如果不是record自己来管理内存，这个字段可能是无效的
+  bool  owner_ = false;   /// 表示当前是否由record来管理内存
 };

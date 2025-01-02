@@ -14,28 +14,36 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
-#include "storage/field/field_meta.h"
 #include <iostream>
+#include "sql/parser/parse_defs.h"
+#include "storage/table/table.h"
+#include "storage/field/field_meta.h"
 
-class TupleCellSpec final
+class TupleCellSpec
 {
 public:
-  TupleCellSpec() = default;
-  TupleCellSpec(const char *table_name, const char *field_name, const char *alias = nullptr);
-  explicit TupleCellSpec(const char *alias);
-  explicit TupleCellSpec(const std::string &alias);
+  TupleCellSpec(const char *table_name, const char *field_name, const char *alias = nullptr, const AggOp = NO_AGGOP);
+  TupleCellSpec(const char *alias, const AggOp = NO_AGGOP);
 
-  const char *table_name() const { return table_name_.c_str(); }
-  const char *field_name() const { return field_name_.c_str(); }
-  const char *alias() const { return alias_.c_str(); }
-
-  bool equals(const TupleCellSpec &other) const
+  const char *table_name() const
   {
-    return table_name_ == other.table_name_ && field_name_ == other.field_name_ && alias_ == other.alias_;
+    return table_name_.c_str();
+  }
+  const char *field_name() const
+  {
+    return field_name_.c_str();
+  }
+  const char *alias() const
+  {
+    return alias_.c_str();
+  }
+  const AggOp aggOp() const{
+    return aggOp_;
   }
 
 private:
   std::string table_name_;
   std::string field_name_;
   std::string alias_;
+  AggOp aggOp_;
 };

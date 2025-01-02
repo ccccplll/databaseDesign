@@ -12,23 +12,24 @@ See the Mulan PSL v2 for more details. */
 // Created by Wangyunlai on 2023/05/04
 //
 
-#include <benchmark/benchmark.h>
 #include <inttypes.h>
 #include <random>
+#include <stdexcept>
+#include <benchmark/benchmark.h>
 
-#include "common/lang/stdexcept.h"
-#include "common/log/log.h"
-#include "common/math/integer_generator.h"
+#include "storage/record/record_manager.h"
 #include "storage/buffer/disk_buffer_pool.h"
 #include "storage/common/condition_filter.h"
-#include "storage/record/record_manager.h"
 #include "storage/trx/vacuous_trx.h"
-#include "storage/clog/vacuous_log_handler.h"
-#include "storage/buffer/double_write_buffer.h"
+#include "common/log/log.h"
+#include "integer_generator.h"
 
 using namespace std;
 using namespace common;
 using namespace benchmark;
+
+once_flag         init_bpm_flag;
+BufferPoolManager bpm{512};
 
 struct Stat
 {
@@ -72,7 +73,7 @@ class BenchmarkBase : public Fixture
 public:
   BenchmarkBase() {}
 
-  virtual ~BenchmarkBase() {}
+  virtual ~BenchmarkBase() { BufferPoolManager::set_instance(nullptr); }
 
   virtual string Name() const = 0;
 
@@ -84,34 +85,33 @@ public:
       return;
     }
 
-    bpm_.init(make_unique<VacuousDoubleWriteBuffer>());
-
     string log_name        = this->Name() + ".log";
     string record_filename = this->record_filename();
-    LoggerFactory::init_default(log_name.c_str(), LOG_LEVEL_INFO);
+    LoggerFactory::init_default(log_name.c_str(), LOG_LEVEL_TRACE);
+
+    std::call_once(init_bpm_flag, []() { BufferPoolManager::set_instance(&bpm); });
 
     ::remove(record_filename.c_str());
 
-    RC rc = bpm_.create_file(record_filename.c_str());
+    RC rc = bpm.create_file(record_filename.c_str());
     if (rc != RC::SUCCESS) {
       LOG_WARN("failed to create record buffer pool file. filename=%s, rc=%s", record_filename.c_str(), strrc(rc));
       throw runtime_error("failed to create record buffer pool file.");
     }
 
-    rc = bpm_.open_file(log_handler_, record_filename.c_str(), buffer_pool_);
+    rc = bpm.open_file(record_filename.c_str(), buffer_pool_);
     if (rc != RC::SUCCESS) {
       LOG_WARN("failed to open record file. filename=%s, rc=%s", record_filename.c_str(), strrc(rc));
       throw runtime_error("failed to open record file");
     }
 
-    handler_ = new RecordFileHandler(StorageFormat::ROW_FORMAT);
-    rc       = handler_->init(*buffer_pool_, log_handler_, nullptr);
+    rc = handler_.init(buffer_pool_);
     if (rc != RC::SUCCESS) {
       LOG_WARN("failed to init record file handler. rc=%s", strrc(rc));
       throw runtime_error("failed to init record file handler");
     }
-    LOG_INFO("test %s setup done. threads=%d, thread index=%d", 
-             this->Name().c_str(), state.threads(), state.thread_index());
+    LOG_INFO(
+        "test %s setup done. threads=%d, thread index=%d", this->Name().c_str(), state.threads(), state.thread_index());
   }
 
   virtual void TearDown(const State &state)
@@ -120,13 +120,8 @@ public:
       return;
     }
 
-    handler_->close();
-    delete handler_;
-    handler_ = nullptr;
-    // TODO 很怪，引入double write buffer后，必须要求先close buffer pool，再执行bpm.close_file。
-    // 以后必须修理好bpm、buffer pool、double write buffer之间的关系
-    buffer_pool_->close_file();
-    bpm_.close_file(this->record_filename().c_str());
+    handler_.close();
+    bpm.close_file(this->record_filename().c_str());
     buffer_pool_ = nullptr;
     LOG_INFO("test %s teardown done. threads=%d, thread index=%d",
         this->Name().c_str(),
@@ -151,7 +146,7 @@ public:
 
     for (int32_t record_value : record_values) {
       record.int_fields[0]   = record_value;
-      [[maybe_unused]] RC rc = handler_->insert_record(reinterpret_cast<const char *>(&record), sizeof(record), &rid);
+      [[maybe_unused]] RC rc = handler_.insert_record(reinterpret_cast<const char *>(&record), sizeof(record), &rid);
       ASSERT(rc == RC::SUCCESS, "failed to insert record into record file. record value=%" PRIu32, record_value);
       rids.push_back(rid);
     }
@@ -161,9 +156,9 @@ public:
 
   uint32_t GetRangeMax(const State &state) const
   {
-    int32_t max = static_cast<int32_t>(state.range(0) * 3);
+    uint32_t max = static_cast<uint32_t>(state.range(0) * 3);
     if (max <= 0) {
-      max = INT32_MAX - 1;
+      max = (1 << 31);
     }
     return max;
   }
@@ -173,7 +168,7 @@ public:
     TestRecord record;
     record.int_fields[0] = value;
 
-    RC rc = handler_->insert_record(reinterpret_cast<const char *>(&record), sizeof(record), &rid);
+    RC rc = handler_.insert_record(reinterpret_cast<const char *>(&record), sizeof(record), &rid);
     switch (rc) {
       case RC::SUCCESS: {
         stat.insert_success_count++;
@@ -186,7 +181,7 @@ public:
 
   void Delete(const RID &rid, Stat &stat)
   {
-    RC rc = handler_->delete_record(&rid);
+    RC rc = handler_.delete_record(&rid);
     switch (rc) {
       case RC::SUCCESS: {
         stat.delete_success_count++;
@@ -205,18 +200,19 @@ public:
     TestConditionFilter condition_filter(begin, end);
     RecordFileScanner   scanner;
     VacuousTrx          trx;
-    RC                  rc = scanner.open_scan(
-        nullptr /*table*/, *buffer_pool_, &trx, log_handler_, ReadWriteMode::READ_ONLY, &condition_filter);
+    RC rc = scanner.open_scan(nullptr /*table*/, *buffer_pool_, &trx, true /*readonly*/, &condition_filter);
     if (rc != RC::SUCCESS) {
       stat.scan_open_failed_count++;
     } else {
       Record  record;
       int32_t count = 0;
-      while (OB_SUCC(rc = scanner.next(record))) {
+      while (scanner.has_next()) {
+        rc = scanner.next(record);
+        ASSERT(rc == RC::SUCCESS, "failed to get record, rc=%s", strrc(rc));
         count++;
       }
 
-      if (rc != RC::RECORD_EOF) {
+      if (rc != RC::SUCCESS) {
         stat.scan_other_count++;
       } else if (count != (end - begin + 1)) {
         stat.mismatch_count++;
@@ -229,10 +225,8 @@ public:
   }
 
 protected:
-  BufferPoolManager  bpm_{512};
-  DiskBufferPool    *buffer_pool_ = nullptr;
-  RecordFileHandler *handler_;
-  VacuousLogHandler  log_handler_;
+  DiskBufferPool   *buffer_pool_ = nullptr;
+  RecordFileHandler handler_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -267,33 +261,24 @@ public:
 
   void SetUp(const State &state) override
   {
-    BenchmarkBase::SetUp(state);
-
     if (0 != state.thread_index()) {
-      while (!setup_done_) {
-        this_thread::sleep_for(chrono::milliseconds(100));
-      }
       return;
     }
+
+    BenchmarkBase::SetUp(state);
 
     uint32_t max = GetRangeMax(state);
     ASSERT(max > 0, "invalid argument count. %ld", state.range(0));
     FillUp(0, max, rids_);
-    ASSERT(rids_.size() > 0, "invalid argument count. %ld", rids_.size());
-    setup_done_ = true;
   }
 
 protected:
-  // 从实际测试情况看，每个线程都会执行setup，但是它们操作的对象都是同一个
-  // 但是每个线程set up结束后，就会执行测试了。如果不等待的话，就会导致有些
-  // 线程访问的数据不是想要的结果
-  volatile bool setup_done_ = false;
-  vector<RID>   rids_;
+  vector<RID> rids_;
 };
 
 BENCHMARK_DEFINE_F(DeletionBenchmark, Deletion)(State &state)
 {
-  IntegerGenerator generator(0, static_cast<int>(rids_.size() - 1));
+  IntegerGenerator generator(0, static_cast<int>(rids_.size()));
   Stat             stat;
 
   for (auto _ : state) {

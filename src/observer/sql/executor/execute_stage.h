@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include "sql/parser/parse.h"
 #include "common/rc.h"
 
 class SQLStageEvent;
@@ -29,6 +30,7 @@ class SelectStmt;
 class ExecuteStage
 {
 public:
+
   RC handle_request(SQLStageEvent *event);
   RC handle_request_with_physical_operator(SQLStageEvent *sql_event);
 };

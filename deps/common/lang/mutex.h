@@ -14,54 +14,46 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
-#include <condition_variable>
-#include <errno.h>
-#include <map>
-#include <mutex>
-#include <pthread.h>
-#include <shared_mutex>
-#include <sstream>
-#include <string.h>
-#include <string>
 #include <sys/types.h>
+#include <errno.h>
+#include <pthread.h>
+#include <string.h>
 #include <unordered_map>
+#include <condition_variable>
+#include <map>
+#include <sstream>
+#include <string>
+#include <mutex>
+#include <shared_mutex>
+#include <thread>
 
-#include "common/lang/thread.h"
 #include "common/log/log.h"
 
-using std::call_once;
-using std::condition_variable;
-using std::lock_guard;
-using std::mutex;
-using std::once_flag;
-using std::scoped_lock;
-using std::shared_mutex;
-using std::unique_lock;
+using namespace std;
 
 namespace common {
 
 #define MUTEX_LOG LOG_DEBUG
 
-class LockTrace
-{
+class LockTrace {
 public:
   static void check(pthread_mutex_t *mutex, const long long threadId, const char *file, const int line);
   static void lock(pthread_mutex_t *mutex, const long long threadId, const char *file, const int line);
   static void tryLock(pthread_mutex_t *mutex, const long long threadId, const char *file, const int line);
   static void unlock(pthread_mutex_t *mutex, const long long threadId, const char *file, const int line);
 
-  static void toString(string &result);
+  static void toString(std::string &result);
 
-  class LockID
-  {
+  class LockID {
   public:
     LockID(const long long threadId, const char *file, const int line) : mFile(file), mThreadId(threadId), mLine(line)
     {}
-    LockID() : mFile(), mThreadId(0), mLine(0) {}
+    LockID() : mFile(), mThreadId(0), mLine(0)
+    {}
 
-    string toString()
+    std::string toString()
     {
-      ostringstream oss;
+      std::ostringstream oss;
 
       oss << "threaId:" << mThreadId << ",file name:" << mFile << ",line:" << mLine;
 
@@ -69,14 +61,14 @@ public:
     }
 
   public:
-    string          mFile;
+    std::string mFile;
     const long long mThreadId;
-    int             mLine;
+    int mLine;
   };
 
   static void foundDeadLock(LockID &current, LockID &other, pthread_mutex_t *otherWaitMutex);
 
-  static bool deadlockCheck(LockID &current, set<pthread_mutex_t *> &ownMutexs, LockID &other, int recusiveNum);
+  static bool deadlockCheck(LockID &current, std::set<pthread_mutex_t *> &ownMutexs, LockID &other, int recusiveNum);
 
   static bool deadlockCheck(pthread_mutex_t *mutex, const long long threadId, const char *file, const int line);
 
@@ -84,19 +76,22 @@ public:
 
   static void insertLock(pthread_mutex_t *mutex, const long long threadId, const char *file, const int line);
 
-  static void setMaxBlockThreads(int blockNum) { mMaxBlockTids = blockNum; }
+  static void setMaxBlockThreads(int blockNum)
+  {
+    mMaxBlockTids = blockNum;
+  }
 
 public:
-  static set<pthread_mutex_t *> mEnableRecurisives;
+  static std::set<pthread_mutex_t *> mEnableRecurisives;
 
 protected:
-  static map<pthread_mutex_t *, LockID>         mLocks;
-  static map<pthread_mutex_t *, int>            mWaitTimes;
-  static map<long long, pthread_mutex_t *>      mWaitLocks;
-  static map<long long, set<pthread_mutex_t *>> mOwnLocks;
+  static std::map<pthread_mutex_t *, LockID> mLocks;
+  static std::map<pthread_mutex_t *, int> mWaitTimes;
+  static std::map<long long, pthread_mutex_t *> mWaitLocks;
+  static std::map<long long, std::set<pthread_mutex_t *>> mOwnLocks;
 
   static pthread_rwlock_t mMapMutex;
-  static int              mMaxBlockTids;
+  static int mMaxBlockTids;
 };
 
 // Open this macro in Makefile
@@ -252,22 +247,21 @@ protected:
 class DebugMutex final
 {
 public:
-  DebugMutex()  = default;
+  DebugMutex() = default;
   ~DebugMutex() = default;
 
   void lock();
   void unlock();
-
 private:
 #ifdef DEBUG
-  mutex lock_;
+  std::mutex lock_;
 #endif
 };
 
 class Mutex final
 {
 public:
-  Mutex()  = default;
+  Mutex() = default;
   ~Mutex() = default;
 
   void lock();
@@ -276,19 +270,19 @@ public:
 
 private:
 #ifdef CONCURRENCY
-  mutex lock_;
+  std::mutex lock_;
 #endif
 };
 
 class SharedMutex final
 {
 public:
-  SharedMutex()  = default;
+  SharedMutex() = default;
   ~SharedMutex() = default;
 
-  void lock();  // lock exclusive
+  void lock(); // lock exclusive
   bool try_lock();
-  void unlock();  // unlock exclusive
+  void unlock(); // unlock exclusive
 
   void lock_shared();
   bool try_lock_shared();
@@ -296,7 +290,7 @@ public:
 
 private:
 #ifdef CONCURRENCY
-  shared_mutex lock_;
+  std::shared_mutex lock_;
 #endif
 };
 
@@ -308,10 +302,10 @@ private:
  */
 class RecursiveSharedMutex
 {
-public:
-  RecursiveSharedMutex()  = default;
+ public:
+  RecursiveSharedMutex() = default;
   ~RecursiveSharedMutex() = default;
-
+  
   void lock_shared();
   bool try_lock_shared();
   void unlock_shared();
@@ -321,14 +315,14 @@ public:
 
 private:
 #ifdef CONCURRENCY
-  mutex              mutex_;
-  condition_variable shared_lock_cv_;
-  condition_variable exclusive_lock_cv_;
-  int                shared_lock_count_    = 0;
-  int                exclusive_lock_count_ = 0;
-  thread::id         recursive_owner_;
-  int                recursive_count_ = 0;  // 表示当前线程加写锁加了多少次
-#endif                                      // CONCURRENCY
+  std::mutex mutex_;
+  std::condition_variable shared_lock_cv_;
+  std::condition_variable exclusive_lock_cv_;
+  int shared_lock_count_ = 0;
+  int exclusive_lock_count_ = 0;
+  std::thread::id recursive_owner_;
+  int recursive_count_ = 0; // 表示当前线程加写锁加了多少次
+#endif // CONCURRENCY
 };
 
 }  // namespace common

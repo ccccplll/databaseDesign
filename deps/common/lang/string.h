@@ -16,28 +16,24 @@ See the Mulan PSL v2 for more details. */
 
 // Basic includes
 #include <cxxabi.h>
-#include <signal.h>
 #include <stdlib.h>
-#include <string.h>
+#include <signal.h>
 
 #include <cstdlib>
+#include <iostream>
+#include <set>
+#include <sstream>
 #include <string>
 #include <typeinfo>
+#include <vector>
 
 #include "common/defs.h"
-#include "common/lang/vector.h"
-#include "common/lang/iostream.h"
-#include "common/lang/sstream.h"
-#include "common/lang/set.h"
-
-using std::string;
-
 namespace common {
 
 /**
  * remove all white space(like ' ', '\t', '\n') from string
  */
-void  strip(string &str);
+void strip(std::string &str);
 char *strip(char *str);
 
 /**
@@ -46,21 +42,21 @@ char *strip(char *str);
  * @param[in]   pad     decimal digits for the string padding
  * return   output 0-padded size string
  */
-string size_to_pad_str(int size, int pad);
+std::string size_to_pad_str(int size, int pad);
 
 /**
  * Convert a string to upper case.
  * @param[in,out] s the string to modify
  * @return a reference to the string that was modified.
  */
-string &str_to_upper(string &s);
+std::string &str_to_upper(std::string &s);
 
 /**
  * Convert a string to lower case.
  * @param[in,out] s the string to modify
  * @return a reference to the string that was modified.
  */
-string &str_to_lower(string &s);
+std::string &str_to_lower(std::string &s);
 
 /**
  * Split string str using 'delimiter's
@@ -68,15 +64,15 @@ string &str_to_lower(string &s);
  * @param[in]      delims     elimiter characters
  * @param[in,out] results     ector containing the split up string
  */
-void split_string(const string &str, string delim, set<string> &results);
-void split_string(const string &str, string delim, vector<string> &results);
-void split_string(char *str, char dim, vector<char *> &results, bool keep_null = false);
+void split_string(const std::string &str, std::string delim, std::set<std::string> &results);
+void split_string(const std::string &str, std::string delim, std::vector<std::string> &results);
+void split_string(char *str, char dim, std::vector<char *> &results, bool keep_null = false);
 
-void merge_string(string &str, string delim, vector<string> &result, size_t result_len = 0);
+void merge_string(std::string &str, std::string delim, std::vector<std::string> &result, size_t result_len = 0);
 /**
  * replace old with new in the string
  */
-void replace(string &str, const string &old, const string &new_str);
+void replace(std::string &str, const std::string &old, const std::string &new_str);
 
 /**
  * binary to hexadecimal
@@ -100,7 +96,7 @@ char *hex_to_bin(const char *s, char *bin_buff, int *dest_len);
  *         number, \c false otherwise
  */
 template <class T>
-bool str_to_val(const string &str, T &val, ios_base &(*radix)(ios_base &) = std::dec);
+bool str_to_val(const std::string &str, T &val, std::ios_base &(*radix)(std::ios_base &) = std::dec);
 
 /**
  * Convert a numeric value into its string representation
@@ -113,14 +109,14 @@ bool str_to_val(const string &str, T &val, ios_base &(*radix)(ios_base &) = std:
  *                      (hexidecimal).
  */
 template <class T>
-void val_to_str(const T &val, string &str, ios_base &(*radix)(ios_base &) = std::dec);
+void val_to_str(const T &val, std::string &str, std::ios_base &(*radix)(std::ios_base &) = std::dec);
 
 /**
  * Double to string
  * @param v
  * @return
  */
-string double_to_str(double v);
+std::string double_to_str(double v);
 
 bool is_blank(const char *s);
 
@@ -139,37 +135,37 @@ char *substr(const char *s, int n1, int n2);
  * get type's name
  */
 template <class T>
-string get_type_name(const T &val);
+std::string get_type_name(const T &val);
 
 template <class T>
-bool str_to_val(const string &str, T &val, ios_base &(*radix)(ios_base &)/* = std::dec */)
+bool str_to_val(const std::string &str, T &val, std::ios_base &(*radix)(std::ios_base &)/* = std::dec */)
 {
-  bool          success = true;
-  istringstream is(str);
+  bool success = true;
+  std::istringstream is(str);
   if (!(is >> radix >> val)) {
-    val     = 0;
+    val = 0;
     success = false;
   }
   return success;
 }
 
 template <class T>
-void val_to_str(const T &val, string &str, ios_base &(*radix)(ios_base &)/* = std::dec */)
+void val_to_str(const T &val, std::string &str, std::ios_base &(*radix)(std::ios_base &)/* = std::dec */)
 {
-  stringstream strm;
+  std::stringstream strm;
   strm << radix << val;
   str = strm.str();
 }
 
 template <class T>
-string get_type_name(const T &val)
+std::string get_type_name(const T &val)
 {
-  int   status = 0;
-  char *stmp   = abi::__cxa_demangle(typeid(val).name(), 0, 0, &status);
+  int status = 0;
+  char *stmp = abi::__cxa_demangle(typeid(val).name(), 0, 0, &status);
   if (!stmp)
     return "";
 
-  string sret(stmp);
+  std::string sret(stmp);
 
   ::free(stmp);
   return sret;

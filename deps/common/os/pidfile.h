@@ -14,8 +14,6 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
-#include "common/lang/string.h"
-
 namespace common {
 
 //! Generates a PID file for the current component
@@ -36,6 +34,6 @@ int writePidFile(const char *progName);
  */
 void removePidFile(void);
 
-string &getPidPath();
+std::string &getPidPath();
 
 }  // namespace common

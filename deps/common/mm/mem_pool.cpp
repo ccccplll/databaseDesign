@@ -27,7 +27,7 @@ int MemPoolItem::init(int item_size, bool dynamic, int pool_num, int item_num_pe
     return -1;
   }
 
-  this->item_size         = item_size;
+  this->item_size = item_size;
   this->item_num_per_pool = item_num_per_pool;
   // in order to init memory pool, enable dynamic here
   this->dynamic = true;
@@ -57,7 +57,7 @@ void MemPoolItem::cleanup()
   frees.clear();
   this->size = 0;
 
-  for (list<void *>::iterator iter = pools.begin(); iter != pools.end(); iter++) {
+  for (std::list<void *>::iterator iter = pools.begin(); iter != pools.end(); iter++) {
     void *pool = *iter;
 
     ::free(pool);
@@ -126,11 +126,11 @@ void *MemPoolItem::alloc()
   return buffer;
 }
 
-MemPoolItem::item_unique_ptr MemPoolItem::alloc_unique_ptr()
+MemPoolItem::unique_ptr MemPoolItem::alloc_unique_ptr()
 {
-  void *item    = this->alloc();
-  auto  deleter = [this](void *p) { this->free(p); };
-  return MemPoolItem::item_unique_ptr(item, deleter);
+  void *item = this->alloc();
+  auto deleter = [this](void *p) { this->free(p); };
+  return MemPoolItem::unique_ptr(item, deleter);
 }
 
 void MemPoolItem::free(void *buf)

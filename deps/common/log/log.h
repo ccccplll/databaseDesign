@@ -14,55 +14,50 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <sys/time.h>
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
 #include <string.h>
-#include <sys/time.h>
+
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <set>
+#include <string>
+#include <functional>
 
 #include "common/defs.h"
-#include "common/lang/string.h"
-#include "common/lang/map.h"
-#include "common/lang/set.h"
-#include "common/lang/functional.h"
-#include "common/lang/iostream.h"
-#include "common/lang/fstream.h"
 
 namespace common {
 
-const unsigned int ONE_KILO            = 1024;
+const unsigned int ONE_KILO = 1024;
 const unsigned int FILENAME_LENGTH_MAX = 256;  // the max filename length
 
-const int LOG_STATUS_OK  = 0;
+const int LOG_STATUS_OK = 0;
 const int LOG_STATUS_ERR = 1;
-const int LOG_MAX_LINE   = 100000;
+const int LOG_MAX_LINE = 100000;
 
-typedef enum
-{
+typedef enum {
   LOG_LEVEL_PANIC = 0,
-  LOG_LEVEL_ERR   = 1,
-  LOG_LEVEL_WARN  = 2,
-  LOG_LEVEL_INFO  = 3,
+  LOG_LEVEL_ERR = 1,
+  LOG_LEVEL_WARN = 2,
+  LOG_LEVEL_INFO = 3,
   LOG_LEVEL_DEBUG = 4,
   LOG_LEVEL_TRACE = 5,
   LOG_LEVEL_LAST
 } LOG_LEVEL;
 
-typedef enum
-{
-  LOG_ROTATE_BYDAY = 0,
-  LOG_ROTATE_BYSIZE,
-  LOG_ROTATE_LAST
-} LOG_ROTATE;
+typedef enum { LOG_ROTATE_BYDAY = 0, LOG_ROTATE_BYSIZE, LOG_ROTATE_LAST } LOG_ROTATE;
 
-class Log
+class Log 
 {
 public:
-  Log(const string &log_name, const LOG_LEVEL log_level = LOG_LEVEL_INFO,
+  Log(const std::string &log_name, const LOG_LEVEL log_level = LOG_LEVEL_INFO,
       const LOG_LEVEL console_level = LOG_LEVEL_WARN);
   ~Log(void);
 
-  static int init(const string &log_file);
+  static int init(const std::string &log_file);
 
   /**
    * These functions won't output header information such as __FUNCTION__,
@@ -93,13 +88,13 @@ public:
 
   int output(const LOG_LEVEL level, const char *module, const char *prefix, const char *f, ...);
 
-  int       set_console_level(const LOG_LEVEL console_level);
+  int set_console_level(const LOG_LEVEL console_level);
   LOG_LEVEL get_console_level();
 
-  int       set_log_level(const LOG_LEVEL log_level);
+  int set_log_level(const LOG_LEVEL log_level);
   LOG_LEVEL get_log_level();
 
-  int        set_rotate_type(LOG_ROTATE rotate_type);
+  int set_rotate_type(LOG_ROTATE rotate_type);
   LOG_ROTATE get_rotate_type();
 
   const char *prefix_msg(const LOG_LEVEL level);
@@ -109,7 +104,7 @@ public:
    * if one module is default module,
    * it will output whatever output level is lower than log_level_ or not
    */
-  void set_default_module(const string &modules);
+  void set_default_module(const std::string &modules);
   bool check_output(const LOG_LEVEL log_level, const char *module);
 
   int rotate(const int year = 0, const int month = 0, const int day = 0);
@@ -119,9 +114,9 @@ public:
    * @details 比如设置一个获取当前session标识的函数，那么每次在打印日志时都会输出session信息。
    *          这个回调函数返回了一个intptr_t类型的数据，可能返回字符串更好，但是现在够用了。
    */
-  void     set_context_getter(function<intptr_t()> context_getter);
+  void set_context_getter(std::function<intptr_t()> context_getter);
   intptr_t context_id();
-
+  
 private:
   void check_param_valid();
 
@@ -134,41 +129,39 @@ private:
 
 private:
   pthread_mutex_t lock_;
-  ofstream        ofs_;
-  string          log_name_;
-  LOG_LEVEL       log_level_;
-  LOG_LEVEL       console_level_;
+  std::ofstream ofs_;
+  std::string log_name_;
+  LOG_LEVEL log_level_;
+  LOG_LEVEL console_level_;
 
-  typedef struct _LogDate
-  {
+  typedef struct _LogDate {
     int year_;
     int mon_;
     int day_;
   } LogDate;
-  LogDate    log_date_;
-  int        log_line_;
-  int        log_max_line_;
+  LogDate log_date_;
+  int log_line_;
+  int log_max_line_;
   LOG_ROTATE rotate_type_;
 
-  typedef map<LOG_LEVEL, string> LogPrefixMap;
-  LogPrefixMap                   prefix_map_;
+  typedef std::map<LOG_LEVEL, std::string> LogPrefixMap;
+  LogPrefixMap prefix_map_;
 
-  typedef set<string> DefaultSet;
-  DefaultSet          default_set_;
+  typedef std::set<std::string> DefaultSet;
+  DefaultSet default_set_;
 
-  function<intptr_t()> context_getter_;
+  std::function<intptr_t()> context_getter_;
 };
 
-class LoggerFactory
-{
+class LoggerFactory {
 public:
   LoggerFactory();
   virtual ~LoggerFactory();
 
-  static int init(const string &log_file, Log **logger, LOG_LEVEL log_level = LOG_LEVEL_INFO,
+  static int init(const std::string &log_file, Log **logger, LOG_LEVEL log_level = LOG_LEVEL_INFO,
       LOG_LEVEL console_level = LOG_LEVEL_WARN, LOG_ROTATE rotate_type = LOG_ROTATE_BYDAY);
 
-  static int init_default(const string &log_file, LOG_LEVEL log_level = LOG_LEVEL_INFO,
+  static int init_default(const std::string &log_file, LOG_LEVEL log_level = LOG_LEVEL_INFO,
       LOG_LEVEL console_level = LOG_LEVEL_WARN, LOG_ROTATE rotate_type = LOG_ROTATE_BYDAY);
 };
 
@@ -184,14 +177,11 @@ extern Log *g_log;
   if (common::g_log) {                                                     \
     struct timeval tv;                                                     \
     gettimeofday(&tv, NULL);                                               \
-    struct tm  curr_time;                                                  \
-    struct tm *p = localtime_r(&tv.tv_sec, &curr_time);                    \
-                                                                           \
+    struct tm *p = localtime(&tv.tv_sec);                                  \
     char sz_head[LOG_HEAD_SIZE] = {0};                                     \
     if (p) {                                                               \
       int usec = (int)tv.tv_usec;                                          \
-      snprintf(sz_head,                                                    \
-          LOG_HEAD_SIZE,                                                   \
+      snprintf(sz_head, LOG_HEAD_SIZE,                                     \
           "%04d-%02d-%02d %02d:%02d:%02u.%06d pid:%u tid:%llx ctx:%lx",    \
           p->tm_year + 1900,                                               \
           p->tm_mon + 1,                                                   \
@@ -212,7 +202,8 @@ extern Log *g_log;
         (common::g_log)->prefix_msg(level),                                \
         __FUNCTION__,                                                      \
         __FILE_NAME__,                                                     \
-        (int32_t)__LINE__);                                                \
+        (int32_t)__LINE__                                                  \
+        );                                                                 \
   }
 
 #define LOG_OUTPUT(level, fmt, ...)                                    \
@@ -289,7 +280,7 @@ int Log::out(const LOG_LEVEL console_level, const LOG_LEVEL log_level, T &msg)
     char prefix[ONE_KILO] = {0};
     LOG_HEAD(prefix, log_level);
     if (LOG_LEVEL_PANIC <= console_level && console_level <= console_level_) {
-      cout << prefix_map_[console_level] << msg;
+      std::cout << prefix_map_[console_level] << msg;
     }
 
     if (LOG_LEVEL_PANIC <= log_level && log_level <= log_level_) {
@@ -302,11 +293,11 @@ int Log::out(const LOG_LEVEL console_level, const LOG_LEVEL log_level, T &msg)
       pthread_mutex_unlock(&lock_);
       locked = false;
     }
-  } catch (exception &e) {
+  } catch (std::exception &e) {
     if (locked) {
       pthread_mutex_unlock(&lock_);
     }
-    cerr << e.what() << endl;
+    std::cerr << e.what() << std::endl;
     return LOG_STATUS_ERR;
   }
 
@@ -315,40 +306,28 @@ int Log::out(const LOG_LEVEL console_level, const LOG_LEVEL log_level, T &msg)
 
 #ifndef ASSERT
 #ifdef DEBUG
-#define ASSERT(expression, description, ...) \
-  do {                                       \
-    if (!(expression)) {                     \
-      LOG_PANIC(description, ##__VA_ARGS__); \
-      assert(expression);                    \
-    }                                        \
+#define ASSERT(expression, description, ...)   \
+  do {                                         \
+    if (!(expression)) {                       \
+      LOG_PANIC(description, ##__VA_ARGS__);   \
+      assert(expression);                      \
+    }                                          \
   } while (0)
 
-#else  // DEBUG
-#define ASSERT(expression, description, ...) \
-  do {                                       \
-    (void)(expression);                      \
+#else // DEBUG
+#define ASSERT(expression, description, ...)   \
+  do {                                         \
+     (void)(expression);                       \
   } while (0)
-#endif  // DEBUG
+#endif // DEBUG
 
 #endif  // ASSERT
-
-#ifndef TRACE
-#ifdef DEBUG
-#define TRACE(format, ...) LOG_TRACE(format, ##__VA_ARGS__)
-#else  // DEBUG
-#define TRACE(...)
-#endif  // DEBUG
-
-#endif  // TRACE
 
 #define SYS_OUTPUT_FILE_POS ", File:" << __FILE__ << ", line:" << __LINE__ << ",function:" << __FUNCTION__
 #define SYS_OUTPUT_ERROR ",error:" << errno << ":" << strerror(errno)
 
 /**
  * 获取当前函数调用栈
- * @details 比如 lbt=0xffffa939589c 0xaaaab3a8c854 0xaaaab3a60f90
- * 拿到栈信息后，可以使用下面的例子获取具体的函数调用栈：
- * addr2line -pCfe ./bin/observer 0xffffa939589c 0xaaaab3a8c854 0xaaaab3a60f90
  */
 const char *lbt();
 

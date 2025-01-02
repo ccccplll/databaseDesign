@@ -17,26 +17,38 @@ See the Mulan PSL v2 for more details. */
 std::string physical_operator_type_name(PhysicalOperatorType type)
 {
   switch (type) {
-    case PhysicalOperatorType::TABLE_SCAN: return "TABLE_SCAN";
-    case PhysicalOperatorType::INDEX_SCAN: return "INDEX_SCAN";
-    case PhysicalOperatorType::NESTED_LOOP_JOIN: return "NESTED_LOOP_JOIN";
-    case PhysicalOperatorType::EXPLAIN: return "EXPLAIN";
-    case PhysicalOperatorType::PREDICATE: return "PREDICATE";
-    case PhysicalOperatorType::INSERT: return "INSERT";
-    case PhysicalOperatorType::DELETE: return "DELETE";
-    case PhysicalOperatorType::PROJECT: return "PROJECT";
-    case PhysicalOperatorType::STRING_LIST: return "STRING_LIST";
-    case PhysicalOperatorType::HASH_GROUP_BY: return "HASH_GROUP_BY";
-    case PhysicalOperatorType::SCALAR_GROUP_BY: return "SCALAR_GROUP_BY";
-    case PhysicalOperatorType::AGGREGATE_VEC: return "AGGREGATE_VEC";
-    case PhysicalOperatorType::GROUP_BY_VEC: return "GROUP_BY_VEC";
-    case PhysicalOperatorType::PROJECT_VEC: return "PROJECT_VEC";
-    case PhysicalOperatorType::TABLE_SCAN_VEC: return "TABLE_SCAN_VEC";
-    case PhysicalOperatorType::EXPR_VEC: return "EXPR_VEC";
-    default: return "UNKNOWN";
+    case PhysicalOperatorType::TABLE_SCAN:
+      return "TABLE_SCAN";
+    case PhysicalOperatorType::INDEX_SCAN:
+      return "INDEX_SCAN";
+    case PhysicalOperatorType::NESTED_LOOP_JOIN:
+      return "NESTED_LOOP_JOIN";
+    case PhysicalOperatorType::EXPLAIN:
+      return "EXPLAIN";
+    case PhysicalOperatorType::PREDICATE:
+      return "PREDICATE";
+    case PhysicalOperatorType::INSERT:
+      return "INSERT";
+    case PhysicalOperatorType::DELETE:
+      return "DELETE";
+    case PhysicalOperatorType::PROJECT:
+      return "PROJECT";
+    case PhysicalOperatorType::STRING_LIST:
+      return "STRING_LIST";
+    default:
+      return "UNKNOWN";
   }
 }
 
-std::string PhysicalOperator::name() const { return physical_operator_type_name(type()); }
+PhysicalOperator::~PhysicalOperator()
+{}
 
-std::string PhysicalOperator::param() const { return ""; }
+std::string PhysicalOperator::name() const
+{
+  return physical_operator_type_name(type());
+}
+
+std::string PhysicalOperator::param() const
+{
+  return "";
+}

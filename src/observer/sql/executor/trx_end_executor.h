@@ -15,11 +15,12 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include "common/rc.h"
-#include "event/session_event.h"
 #include "event/sql_event.h"
+#include "event/session_event.h"
+#include "sql/executor/sql_result.h"
 #include "session/session.h"
-#include "sql/stmt/stmt.h"
 #include "storage/trx/trx.h"
+#include "sql/stmt/stmt.h"
 
 /**
  * @brief 事务结束的执行器，可以是提交或回滚
@@ -28,12 +29,12 @@ See the Mulan PSL v2 for more details. */
 class TrxEndExecutor
 {
 public:
-  TrxEndExecutor()          = default;
+  TrxEndExecutor() = default;
   virtual ~TrxEndExecutor() = default;
 
   RC execute(SQLStageEvent *sql_event)
   {
-    Stmt         *stmt          = sql_event->stmt();
+    Stmt *stmt = sql_event->stmt();
     SessionEvent *session_event = sql_event->session_event();
 
     Session *session = session_event->session();
@@ -42,7 +43,8 @@ public:
 
     if (stmt->type() == StmtType::COMMIT) {
       return trx->commit();
-    } else {
+    }
+    else {
       return trx->rollback();
     }
   }

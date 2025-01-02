@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include <assert.h>
 #include <errno.h>
 #include <fstream>
+#include <iostream>
 #include <libgen.h>
 #include <paths.h>
 #include <sstream>
@@ -23,24 +24,21 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/log/log.h"
 #include "common/os/pidfile.h"
-#include "common/lang/iostream.h"
-#include "common/lang/fstream.h"
-
 namespace common {
 
-string &getPidPath()
+std::string &getPidPath()
 {
-  static string path;
+  static std::string path;
 
   return path;
 }
 
 void setPidPath(const char *progName)
 {
-  string &path = getPidPath();
+  std::string &path = getPidPath();
 
   if (progName != NULL) {
-    path = string(_PATH_TMP) + progName + ".pid";
+    path = std::string(_PATH_TMP) + progName + ".pid";
   } else {
     path = "";
   }
@@ -49,19 +47,19 @@ void setPidPath(const char *progName)
 int writePidFile(const char *progName)
 {
   assert(progName);
-  ofstream ostr;
-  int           rv = 1;
+  std::ofstream ostr;
+  int rv = 1;
 
   setPidPath(progName);
-  string path = getPidPath();
-  ostr.open(path.c_str(), ios::trunc);
+  std::string path = getPidPath();
+  ostr.open(path.c_str(), std::ios::trunc);
   if (ostr.good()) {
-    ostr << getpid() << endl;
+    ostr << getpid() << std::endl;
     ostr.close();
     rv = 0;
   } else {
     rv = errno;
-    cerr << "error opening PID file " << path.c_str() << SYS_OUTPUT_ERROR << endl;
+    std::cerr << "error opening PID file " << path.c_str() << SYS_OUTPUT_ERROR << std::endl;
   }
 
   return rv;
@@ -69,7 +67,7 @@ int writePidFile(const char *progName)
 
 void removePidFile(void)
 {
-  string path = getPidPath();
+  std::string path = getPidPath();
   if (!path.empty()) {
     unlink(path.c_str());
     setPidPath(NULL);

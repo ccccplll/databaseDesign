@@ -15,17 +15,16 @@ See the Mulan PSL v2 for more details. */
 #ifndef __COMMON_METRICS_METRICS_REGISTRY_H__
 #define __COMMON_METRICS_METRICS_REGISTRY_H__
 
-#include <list>
-#include <map>
 #include <string>
+#include <map>
+#include <list>
 
 #include "common/metrics/metric.h"
 #include "common/metrics/reporter.h"
 
 namespace common {
 
-class MetricsRegistry
-{
+class MetricsRegistry {
 public:
   MetricsRegistry(){};
   virtual ~MetricsRegistry(){};
@@ -37,11 +36,14 @@ public:
 
   void report();
 
-  void add_reporter(Reporter *reporter) { reporters.push_back(reporter); }
+  void add_reporter(Reporter *reporter)
+  {
+    reporters.push_back(reporter);
+  }
 
 protected:
   std::map<std::string, Metric *> metrics;
-  std::list<Reporter *>           reporters;
+  std::list<Reporter *> reporters;
 };
 
 MetricsRegistry &get_metrics_registry();

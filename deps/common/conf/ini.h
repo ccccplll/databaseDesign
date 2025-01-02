@@ -18,21 +18,19 @@ See the Mulan PSL v2 for more details. */
 #include <stdio.h>
 
 #include <iostream>
-
-#include "common/lang/map.h"
-#include "common/lang/set.h"
-#include "common/lang/string.h"
+#include <map>
+#include <set>
+#include <string>
 
 namespace common {
 
 //********************************************************************
-// #means comments
+//#means comments
 // Ini configuration format
 //[section]
 // VARNAME=VALUE
 
-class Ini
-{
+class Ini {
 public:
   /**
    * To simplify the logic, no lock's when loading configuration
@@ -46,34 +44,35 @@ public:
    * it support load multiple ini configuration files
    * @return, 0 means success, others means failed
    */
-  int load(const string &ini_file);
+  int load(const std::string &ini_file);
 
   /**
    * get the map of the section
    * if the section doesn't exist, return one empty section
    */
-  const map<string, string> &get(const string &section = DEFAULT_SECTION);
+  const std::map<std::string, std::string> &get(const std::string &section = DEFAULT_SECTION);
 
   /**
    * get the value of the key in the section,
    * if the key-value doesn't exist,
    * use the input default_value
    */
-  string get(const string &key, const string &default_value, const string &section = DEFAULT_SECTION);
+  std::string get(
+      const std::string &key, const std::string &default_value, const std::string &section = DEFAULT_SECTION);
 
   /**
    * put the key-value pair to the section
    * if the key-value already exist, just replace it
    * if the section doesn't exist, it will create this section
    */
-  int put(const string &key, const string &value, const string &section = DEFAULT_SECTION);
+  int put(const std::string &key, const std::string &value, const std::string &section = DEFAULT_SECTION);
 
   /**
    * output all configuration to one string
    */
-  void to_string(string &output_str);
+  void to_string(std::string &output_str);
 
-  static const string DEFAULT_SECTION;
+  static const std::string DEFAULT_SECTION;
 
   // one line max length
   static const int MAX_CFG_LINE_LEN = 1024;
@@ -89,33 +88,33 @@ public:
 
   // session name tag
   static const char CFG_SESSION_START_TAG = '[';
-  static const char CFG_SESSION_END_TAG   = ']';
+  static const char CFG_SESSION_END_TAG = ']';
 
 protected:
   /**
    * insert one empty session to sections_
    */
-  void insert_session(const string &session_name);
+  void insert_session(const std::string &session_name);
 
   /**
    * switch session according to the session_name
    * if the section doesn't exist, it will create one
    */
-  map<string, string> *switch_session(const string &session_name);
+  std::map<std::string, std::string> *switch_session(const std::string &session_name);
 
   /**
    * insert one entry to session_map
    * line's format is "key=value"
    *
    */
-  int insert_entry(map<string, string> *session_map, const string &line);
+  int insert_entry(std::map<std::string, std::string> *session_map, const std::string &line);
 
-  typedef map<string, map<string, string>> SessionsMap;
+  typedef std::map<std::string, std::map<std::string, std::string>> SessionsMap;
 
 private:
-  static const map<string, string> empty_map_;
+  static const std::map<std::string, std::string> empty_map_;
 
-  set<string> file_names_;
+  std::set<std::string> file_names_;
   SessionsMap sections_;
 };
 
