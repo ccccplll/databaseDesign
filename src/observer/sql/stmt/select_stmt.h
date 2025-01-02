@@ -14,13 +14,12 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "common/rc.h"
 #include "sql/stmt/stmt.h"
 #include "storage/field/field.h"
-#include "storage/field/order_field.h"
 
 class FieldMeta;
 class FilterStmt;
@@ -31,41 +30,24 @@ class Table;
  * @brief 表示select语句
  * @ingroup Statement
  */
-class SelectStmt : public Stmt 
+class SelectStmt : public Stmt
 {
 public:
   SelectStmt() = default;
   ~SelectStmt() override;
 
-  StmtType type() const override
-  {
-    return StmtType::SELECT;
-  }
+  StmtType type() const override { return StmtType::SELECT; }
 
 public:
   static RC create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt);
 
 public:
-  const std::vector<Table *> &tables() const
-  {
-    return tables_;
-  }
-  const std::vector<Field> &query_fields() const
-  {
-    return query_fields_;
-  }
-  FilterStmt *filter_stmt() const
-  {
-    return filter_stmt_;
-  }
-  const std::vector<OrderFiled> &order_fileds() const
-  {
-    return order_fileds_;
-  }
-private:
-  std::vector<Field> query_fields_;
-  std::vector<Table *> tables_;
-  FilterStmt *filter_stmt_ = nullptr;
-  std::vector<OrderFiled> order_fileds_;
+  const std::vector<Table *> &tables() const { return tables_; }
+  const std::vector<Field>   &query_fields() const { return query_fields_; }
+  FilterStmt                 *filter_stmt() const { return filter_stmt_; }
 
+private:
+  std::vector<Field>   query_fields_;
+  std::vector<Table *> tables_;
+  FilterStmt          *filter_stmt_ = nullptr;
 };

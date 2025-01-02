@@ -14,10 +14,11 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <map>
+
 #include "net/thread_handler.h"
 #include "net/sql_task_handler.h"
 #include "common/thread/thread_pool_executor.h"
-#include "common/lang/mutex.h"
 
 struct EventCallbackAg;
 
@@ -34,16 +35,16 @@ public:
   JavaThreadPoolThreadHandler() = default;
   virtual ~JavaThreadPoolThreadHandler();
 
-  //! @copydoc ThreadHandler::start
+  //! copydoc ThreadHandler::start
   virtual RC start() override;
-  //! @copydoc ThreadHandler::stop
+  //! copydoc ThreadHandler::stop
   virtual RC stop() override;
-  //! @copydoc ThreadHandler::await_stop
+  //! copydoc ThreadHandler::await_stop
   virtual RC await_stop() override;
 
-  //! @copydoc ThreadHandler::new_connection
+  //! copydoc ThreadHandler::new_connection
   virtual RC new_connection(Communicator *communicator) override;
-  //! @copydoc ThreadHandler::close_connection
+  //! copydoc ThreadHandler::close_connection
   virtual RC close_connection(Communicator *communicator) override;
 
 public:
@@ -61,10 +62,10 @@ public:
   void event_loop_thread();
 
 private:
-  mutex                                  lock_;
-  struct event_base                     *event_base_ = nullptr;  /// libevent 的event_base
-  common::ThreadPoolExecutor             executor_;              /// 线程池
-  map<Communicator *, EventCallbackAg *> event_map_;             /// 每个连接与它关联的数据
+  std::mutex                                  lock_;
+  struct event_base                          *event_base_ = nullptr;  /// libevent 的event_base
+  common::ThreadPoolExecutor                  executor_;              /// 线程池
+  std::map<Communicator *, EventCallbackAg *> event_map_;             /// 每个连接与它关联的数据
 
   SqlTaskHandler sql_task_handler_;  /// SQL请求处理器
 };

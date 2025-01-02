@@ -12,9 +12,10 @@ See the Mulan PSL v2 for more details. */
 // Created by Wangyunlai on 2024/01/10.
 //
 
+#include <unordered_map>
+#include <mutex>
+
 #include "net/thread_handler.h"
-#include "common/lang/mutex.h"
-#include "common/lang/unordered_map.h"
 
 class Worker;
 
@@ -43,7 +44,7 @@ public:
 
 private:
   /// 记录一个连接Communicator关联的线程数据
-  unordered_map<Communicator *, Worker *> thread_map_;  // 当前编译器没有支持jthread
+  std::unordered_map<Communicator *, Worker *> thread_map_;  // 当前编译器没有支持jthread
   /// 保护线程安全的锁
-  mutex lock_;
+  std::mutex lock_;
 };

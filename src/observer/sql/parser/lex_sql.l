@@ -92,8 +92,6 @@ TABLES                                  RETURN_TOKEN(TABLES);
 INDEX                                   RETURN_TOKEN(INDEX);
 ON                                      RETURN_TOKEN(ON);
 SHOW                                    RETURN_TOKEN(SHOW);
-IN                                      RETURN_TOKEN(IN);
-EXISTS                                  RETURN_TOKEN(EXISTS);
 SYNC                                    RETURN_TOKEN(SYNC);
 SELECT                                  RETURN_TOKEN(SELECT);
 CALC                                    RETURN_TOKEN(CALC);
@@ -109,30 +107,13 @@ SET                                     RETURN_TOKEN(SET);
 BEGIN                                   RETURN_TOKEN(TRX_BEGIN);
 COMMIT                                  RETURN_TOKEN(TRX_COMMIT);
 ROLLBACK                                RETURN_TOKEN(TRX_ROLLBACK);
-NULLABLE                                RETURN_TOKEN(NULLABLE);
-NULL                                    RETURN_TOKEN(NULL_T);
-IS                                      RETURN_TOKEN(IS);
 INT                                     RETURN_TOKEN(INT_T);
 CHAR                                    RETURN_TOKEN(STRING_T);
 FLOAT                                   RETURN_TOKEN(FLOAT_T);
-DATE                                    RETURN_TOKEN(DATE_T);
 LOAD                                    RETURN_TOKEN(LOAD);
 DATA                                    RETURN_TOKEN(DATA);
 INFILE                                  RETURN_TOKEN(INFILE);
 EXPLAIN                                 RETURN_TOKEN(EXPLAIN);
-LIKE                                    RETURN_TOKEN(LIKE_COMP);
-NOT                                     RETURN_TOKEN(NOT_COMP);
-MAX                                     RETURN_TOKEN(MAX_AGG);
-MIN                                     RETURN_TOKEN(MIN_AGG);
-COUNT                                   RETURN_TOKEN(COUNT_AGG);
-AVG                                     RETURN_TOKEN(AVG_AGG);
-SUM                                     RETURN_TOKEN(SUM_AGG);
-INNER                                   RETURN_TOKEN(INNER);
-JOIN                                    RETURN_TOKEN(JOIN);
-UNIQUE                                  RETURN_TOKEN(UNIQUE);
-ORDER                                   RETURN_TOKEN(ORDER);
-BY                                      RETURN_TOKEN(BY);
-ASC                                     RETURN_TOKEN(ASC);
 {ID}                                    yylval->string=strdup(yytext); RETURN_TOKEN(ID);
 "("                                     RETURN_TOKEN(LBRACE);
 ")"                                     RETURN_TOKEN(RBRACE);
@@ -145,6 +126,7 @@ ASC                                     RETURN_TOKEN(ASC);
 "<"                                     RETURN_TOKEN(LT);
 ">="                                    RETURN_TOKEN(GE);
 ">"                                     RETURN_TOKEN(GT);
+
 "+" |
 "-" |
 "*" |

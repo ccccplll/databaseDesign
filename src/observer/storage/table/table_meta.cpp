@@ -15,10 +15,10 @@ See the Mulan PSL v2 for more details. */
 #include <algorithm>
 #include <common/lang/string.h>
 
-#include "storage/table/table_meta.h"
-#include "json/json.h"
 #include "common/log/log.h"
+#include "storage/table/table_meta.h"
 #include "storage/trx/trx.h"
+#include "json/json.h"
 
 using namespace std;
 
@@ -57,16 +57,16 @@ RC TableMeta::init(int32_t table_id, const char *name, int field_num, const Attr
 
   RC rc = RC::SUCCESS;
 
-  int                      field_offset  = 4;
-  int                      trx_field_num = 0;
-  const vector<FieldMeta> *trx_fields    = TrxKit::instance()->trx_fields();
+  int field_offset  = 0;
+  int trx_field_num = 0;
+
+  const vector<FieldMeta> *trx_fields = TrxKit::instance()->trx_fields();
   if (trx_fields != nullptr) {
     fields_.resize(field_num + trx_fields->size());
 
     for (size_t i = 0; i < trx_fields->size(); i++) {
       const FieldMeta &field_meta = (*trx_fields)[i];
-      fields_[i] = FieldMeta(field_meta.name(), field_meta.type(), field_offset, field_meta.len(), false /*visible*/,field_meta.isNullable(),i);
-      LOG_DEBUG("init the fields type: %d",field_meta.type());
+      fields_[i] = FieldMeta(field_meta.name(), field_meta.type(), field_offset, field_meta.len(), false /*visible*/);
       field_offset += field_meta.len();
     }
 
@@ -78,7 +78,7 @@ RC TableMeta::init(int32_t table_id, const char *name, int field_num, const Attr
   for (int i = 0; i < field_num; i++) {
     const AttrInfoSqlNode &attr_info = attributes[i];
     rc                               = fields_[i + trx_field_num].init(
-        attr_info.name.c_str(), attr_info.type, field_offset, attr_info.length, true /*visible*/,attr_info.isNullable,i+trx_field_num);
+        attr_info.name.c_str(), attr_info.type, field_offset, attr_info.length, true /*visible*/);
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to init field meta. table name=%s, field name: %s", name, attr_info.name.c_str());
       return rc;
@@ -239,8 +239,9 @@ int TableMeta::deserialize(std::istream &is)
     return -1;
   }
 
-  RC                     rc        = RC::SUCCESS;
-  int                    field_num = fields_value.size();
+  RC  rc        = RC::SUCCESS;
+  int field_num = fields_value.size();
+
   std::vector<FieldMeta> fields(field_num);
   for (int i = 0; i < field_num; i++) {
     FieldMeta &field = fields[i];
@@ -259,7 +260,7 @@ int TableMeta::deserialize(std::istream &is)
   table_id_ = table_id;
   name_.swap(table_name);
   fields_.swap(fields);
-  record_size_ = fields_.back().offset() + fields_.back().len() - fields_.begin()->offset()+4;
+  record_size_ = fields_.back().offset() + fields_.back().len() - fields_.begin()->offset();
 
   const Json::Value &indexes_value = table_value[FIELD_INDEXES];
   if (!indexes_value.empty()) {

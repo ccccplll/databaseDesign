@@ -12,24 +12,19 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021/4/13.
 //
 
-#include <string>
 #include <sstream>
+#include <string>
 
 #include "sql/executor/execute_stage.h"
 
 #include "common/log/log.h"
-#include "session/session.h"
-#include "event/storage_event.h"
-#include "event/sql_event.h"
 #include "event/session_event.h"
-#include "sql/stmt/select_agg_stmt.h"
-#include "sql/stmt/select_stmtV2.h"
-#include "sql/stmt/stmt.h"
-#include "sql/stmt/select_stmt.h"
-#include "storage/default/default_handler.h"
+#include "event/sql_event.h"
 #include "sql/executor/command_executor.h"
 #include "sql/operator/calc_physical_operator.h"
-#include "storage/field/agg_field.h"
+#include "sql/stmt/select_stmt.h"
+#include "sql/stmt/stmt.h"
+#include "storage/default/default_handler.h"
 
 using namespace std;
 using namespace common;
@@ -37,6 +32,7 @@ using namespace common;
 RC ExecuteStage::handle_request(SQLStageEvent *sql_event)
 {
   RC rc = RC::SUCCESS;
+
   const unique_ptr<PhysicalOperator> &physical_operator = sql_event->physical_operator();
   if (physical_operator != nullptr) {
     return handle_request_with_physical_operator(sql_event);
@@ -69,62 +65,21 @@ RC ExecuteStage::handle_request_with_physical_operator(SQLStageEvent *sql_event)
   TupleSchema schema;
   switch (stmt->type()) {
     case StmtType::SELECT: {
-      SelectStmtV2 *select_stmt = static_cast<SelectStmtV2 *>(stmt);
-      bool with_table_name = select_stmt->tables().size() > 1;
-      if(select_stmt->agg_fields().empty())
-        for (const Field &field : select_stmt->query_fields()) {
-          if (with_table_name) {
-            schema.append_cell(field.table_name(), field.field_name());
-          } else {
-            schema.append_cell(field.field_name());
-          }
-        }
-      else{
-        for (const AggField &field : select_stmt->agg_fields()) {
-        if (with_table_name) {
-          if(field.is_star())
-            schema.append_cell(field.table_name(), "*",field.aggOp());
-          else
-            schema.append_cell(field.table_name(), field.field_name(),field.aggOp());
-        } else {
-          if(field.is_star())
-            schema.append_cell("*",field.aggOp());
-          else
-            schema.append_cell(field.field_name(),field.aggOp());
-        }
-      }
-      }
-      // SelectStmt *select_stmt = static_cast<SelectStmt *>(stmt);
-      // bool with_table_name = select_stmt->tables().size() > 1;
+      SelectStmt *select_stmt     = static_cast<SelectStmt *>(stmt);
+      bool        with_table_name = select_stmt->tables().size() > 1;
 
-      // for (const Field &field : select_stmt->query_fields()) {
-      //   if (with_table_name) {
-      //     schema.append_cell(field.table_name(), field.field_name());
-      //   } else {
-      //     schema.append_cell(field.field_name());
-      //   }
-      // }
-    } break;
-    case StmtType::SELECT_AGG :{
-      SelectAggStmt *select_agg_stmt = static_cast<SelectAggStmt *>(stmt);
-      bool with_table_name = select_agg_stmt->tables().size() > 1;
-            for (const AggField &field : select_agg_stmt->agg_fields()) {
+      for (const Field &field : select_stmt->query_fields()) {
         if (with_table_name) {
-          if(field.is_star())
-            schema.append_cell(field.table_name(), "*",field.aggOp());
-          else
-            schema.append_cell(field.table_name(), field.field_name(),field.aggOp());
+          schema.append_cell(field.table_name(), field.field_name());
         } else {
-          if(field.is_star())
-            schema.append_cell("*",field.aggOp());
-          else
-            schema.append_cell(field.field_name(),field.aggOp());
+          schema.append_cell(field.field_name());
         }
       }
-    }break;
+    } break;
+
     case StmtType::CALC: {
       CalcPhysicalOperator *calc_operator = static_cast<CalcPhysicalOperator *>(physical_operator.get());
-      for (const unique_ptr<Expression> & expr : calc_operator->expressions()) {
+      for (const unique_ptr<Expression> &expr : calc_operator->expressions()) {
         schema.append_cell(expr->name().c_str());
       }
     } break;

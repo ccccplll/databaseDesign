@@ -14,7 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
-#include "common/lang/functional.h"
+#include <functional>
 
 namespace common {
 
@@ -38,12 +38,12 @@ public:
 class RunnableAdaptor : public Runnable
 {
 public:
-  RunnableAdaptor(function<void()> callable) : callable_(callable) {}
+  RunnableAdaptor(std::function<void()> callable) : callable_(callable) {}
 
   void run() override { callable_(); }
 
 private:
-  function<void()> callable_;
+  std::function<void()> callable_;
 };
 
 }  // namespace common

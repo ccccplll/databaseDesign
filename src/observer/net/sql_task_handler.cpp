@@ -34,11 +34,7 @@ RC SqlTaskHandler::handle_event(Communicator *communicator)
 
   SQLStageEvent sql_event(event, event->query());
 
-  rc = handle_sql(&sql_event);
-  if (OB_FAIL(rc)) {
-    LOG_TRACE("failed to handle sql. rc=%s", strrc(rc));
-    event->sql_result()->set_return_code(rc);
-  }
+  (void)handle_sql(&sql_event);
 
   bool need_disconnect = false;
 
@@ -76,7 +72,7 @@ RC SqlTaskHandler::handle_sql(SQLStageEvent *sql_event)
   }
 
   rc = optimize_stage_.handle_request(sql_event);
-  if (rc != RC::UNIMPLEMENTED && rc != RC::SUCCESS) {
+  if (rc != RC::UNIMPLENMENT && rc != RC::SUCCESS) {
     LOG_TRACE("failed to do optimize. rc=%s", strrc(rc));
     return rc;
   }

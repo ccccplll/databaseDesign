@@ -77,50 +77,31 @@ extern int yydebug;
     INT_T = 278,                   /* INT_T  */
     STRING_T = 279,                /* STRING_T  */
     FLOAT_T = 280,                 /* FLOAT_T  */
-    DATE_T = 281,                  /* DATE_T  */
-    HELP = 282,                    /* HELP  */
-    EXIT = 283,                    /* EXIT  */
-    DOT = 284,                     /* DOT  */
-    INTO = 285,                    /* INTO  */
-    VALUES = 286,                  /* VALUES  */
-    FROM = 287,                    /* FROM  */
-    WHERE = 288,                   /* WHERE  */
-    AND = 289,                     /* AND  */
-    SET = 290,                     /* SET  */
-    ON = 291,                      /* ON  */
-    LOAD = 292,                    /* LOAD  */
-    DATA = 293,                    /* DATA  */
-    INFILE = 294,                  /* INFILE  */
-    EXPLAIN = 295,                 /* EXPLAIN  */
-    EQ = 296,                      /* EQ  */
-    LT = 297,                      /* LT  */
-    GT = 298,                      /* GT  */
-    LE = 299,                      /* LE  */
-    GE = 300,                      /* GE  */
-    NE = 301,                      /* NE  */
-    LIKE_COMP = 302,               /* LIKE_COMP  */
-    NOT_COMP = 303,                /* NOT_COMP  */
-    MAX_AGG = 304,                 /* MAX_AGG  */
-    MIN_AGG = 305,                 /* MIN_AGG  */
-    SUM_AGG = 306,                 /* SUM_AGG  */
-    COUNT_AGG = 307,               /* COUNT_AGG  */
-    AVG_AGG = 308,                 /* AVG_AGG  */
-    INNER = 309,                   /* INNER  */
-    JOIN = 310,                    /* JOIN  */
-    UNIQUE = 311,                  /* UNIQUE  */
-    NULL_T = 312,                  /* NULL_T  */
-    IS = 313,                      /* IS  */
-    NULLABLE = 314,                /* NULLABLE  */
-    IN = 315,                      /* IN  */
-    EXISTS = 316,                  /* EXISTS  */
-    ORDER = 317,                   /* ORDER  */
-    BY = 318,                      /* BY  */
-    ASC = 319,                     /* ASC  */
-    NUMBER = 320,                  /* NUMBER  */
-    FLOAT = 321,                   /* FLOAT  */
-    ID = 322,                      /* ID  */
-    SSS = 323,                     /* SSS  */
-    UMINUS = 324                   /* UMINUS  */
+    HELP = 281,                    /* HELP  */
+    EXIT = 282,                    /* EXIT  */
+    DOT = 283,                     /* DOT  */
+    INTO = 284,                    /* INTO  */
+    VALUES = 285,                  /* VALUES  */
+    FROM = 286,                    /* FROM  */
+    WHERE = 287,                   /* WHERE  */
+    AND = 288,                     /* AND  */
+    SET = 289,                     /* SET  */
+    ON = 290,                      /* ON  */
+    LOAD = 291,                    /* LOAD  */
+    DATA = 292,                    /* DATA  */
+    INFILE = 293,                  /* INFILE  */
+    EXPLAIN = 294,                 /* EXPLAIN  */
+    EQ = 295,                      /* EQ  */
+    LT = 296,                      /* LT  */
+    GT = 297,                      /* GT  */
+    LE = 298,                      /* LE  */
+    GE = 299,                      /* GE  */
+    NE = 300,                      /* NE  */
+    NUMBER = 301,                  /* NUMBER  */
+    FLOAT = 302,                   /* FLOAT  */
+    ID = 303,                      /* ID  */
+    SSS = 304,                     /* SSS  */
+    UMINUS = 305                   /* UMINUS  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -129,33 +110,26 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 121 "yacc_sql.y"
+#line 102 "yacc_sql.y"
 
   ParsedSqlNode *                   sql_node;
   ConditionSqlNode *                condition;
   Value *                           value;
   enum CompOp                       comp;
-  enum AggOp                        agg;
   RelAttrSqlNode *                  rel_attr;
   std::vector<AttrInfoSqlNode> *    attr_infos;
   AttrInfoSqlNode *                 attr_info;
   Expression *                      expression;
   std::vector<Expression *> *       expression_list;
   std::vector<Value> *              value_list;
-  std::vector<std::vector<Value>> *      insert_value_list;
   std::vector<ConditionSqlNode> *   condition_list;
   std::vector<RelAttrSqlNode> *     rel_attr_list;
   std::vector<std::string> *        relation_list;
   char *                            string;
   int                               number;
   float                             floats;
-  std::vector<std::string> *         index_attrs;
-  JoinSqlNode *                     join_list;
-  std::vector<UpdateRel> *          update_rel_list;
-  OrderByNode *                     order_by_node;
-  std::vector<OrderByNode>   *       order_by_node_list;
 
-#line 159 "yacc_sql.hpp"
+#line 133 "yacc_sql.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
